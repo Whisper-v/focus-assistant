@@ -9,8 +9,12 @@
 PetWidget::PetWidget(QWidget *parent)
     : QWidget(parent)
 {
-    setFixedSize(246, 205); // 紧凑尺寸：paintEvent 会把 300x250 的绘制等比缩放居中
+    // 尺寸交由父布局/窗口决定：paintEvent 会把 300x250 的虚拟画布等比缩放居中，
+    // 因此窗口放大时露露跟着变大，缩小时等比变小（可大可小）。
+    setMinimumSize(150, 125);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setAttribute(Qt::WA_TranslucentBackground);
+    setMouseTracking(true);
     applySkin();
     m_animTimer.setInterval(90);
     connect(&m_animTimer, &QTimer::timeout, this, &PetWidget::onAnimTick);

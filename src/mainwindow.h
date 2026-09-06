@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QPoint>
+#include <QRect>
+#include <QSize>
 #include <QList>
 #include <QSettings>
 
@@ -60,6 +62,12 @@ private:
     void updateSkinChecks();
     void applyPrefs();
     void setPinDesktop(bool on);   // 常驻：不受「显示桌面」影响
+    // 无边框窗口：自由缩放（可大可小）
+    void beginResize(int dir, const QPoint &globalPos);
+    void doResize(const QPoint &globalPos);
+    void endResize();
+    void setEdgeCursor(int dir);
+    void updateHoverCursor(const QPoint &pos);
     void updateMoodAndText();
     void updateActions();
     void updateStageLabel();
@@ -90,6 +98,12 @@ private:
     bool m_dragging = false;
     QPoint m_dragOffset;
     bool m_justCompleted = false;
+    // 手动缩放状态
+    bool m_resizing = false;
+    int  m_resizeDir = 0;   // 位：1左 2右 4上 8下
+    QPoint m_resizeStart;
+    QRect  m_resizeGeom;
+    QSize  m_resizeMin;
 };
 
 #endif // MAINWINDOW_H

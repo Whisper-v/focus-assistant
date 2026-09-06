@@ -54,6 +54,33 @@ void centerDialogOnScreen(QDialog *dlg, QWidget *anchor)
     });
 }
 
+// ---------- 无边框窗口手动缩放（可大可小） ----------
+constexpr int kResizeEdge = 8; // 距窗口边缘多少像素内可拖拽缩放
+
+// 命中测试：返回所在边缘位（1左 2右 4上 8下），内部为 0
+int hitTestEdges(const QPoint &pos, const QSize &sz)
+{
+    const int x = pos.x(), y = pos.y();
+    const int W = sz.width(), H = sz.height();
+    int dir = 0;
+    if (x <= kResizeEdge)               dir |= 1; // 左
+    if (x >= W - 1 - kResizeEdge)       dir |= 2; // 右
+    if (y <= kResizeEdge)               dir |= 4; // 上
+    if (y >= H - 1 - kResizeEdge)       dir |= 8; // 下
+    return dir;
+}
+
+Qt::CursorShape edgeCursorShape(int dir)
+{
+    switch (dir) {
+    case 1: case 2:  return Qt::SizeHorCursor;   // 左右
+    case 4: case 8:  return Qt::SizeVerCursor;   // 上下
+    case 5: case 10: return Qt::SizeFDiagCursor; // 左上↘右下
+    case 6: case 9:  return Qt::SizeBDiagCursor; // 右上↙左下
+    default:         return Qt::ArrowCursor;
+    }
+}
+
 } // namespace
 
 MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
@@ -66,8 +93,8 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     setWindowIcon(QIcon(QStringLiteral(":/icons/focus-assistant.svg")));
     setAttribute(Qt::WA_TranslucentBackground);
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
-    setFixedWidth(300);   // 更紧凑的小窗
-    setMinimumWidth(300);
+    setMinimumSize(220, 300);   // 下限，实际最小尺寸由布局约束
+    setMouseTracking(true);
 
     buildUi();
     buildSkinActions();
@@ -93,6 +120,15 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     updateStageLabel();
     updateTimeLabel();
 
+    // 恢复上次大小（无边框自由缩放，可大可小；下限由布局最小尺寸约束）
+    if (layout())
+        layout()->activate();
+    const QSize layoutMin = layout() ? layout()->totalMinimumSize() : minimumSize();
+    m_resizeMin = layoutMin.expandedTo(QSize(230, 330));
+    const QSize savedSize = m_prefs.value(QStringLiteral("window/size"), QSize(300, 412)).toSize();
+    resize(qBound(m_resizeMin.width(), savedSize.width(), 1800),
+           qBound(m_resizeMin.height(), savedSize.height(), 1500));
+
     // 记忆位置 / 默认停靠屏幕右下角
     const QPoint saved = m_prefs.value(QStringLiteral("window/pos")).toPoint();
     if (saved.isNull()) {
@@ -111,11 +147,19 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     m_msgSub->installEventFilter(this);
     m_stageLabel->installEventFilter(this);
     m_timeLabel->installEventFilter(this);
+    // 文字区域不消费鼠标事件，开启追踪让父窗口能收到 move（用于边缘缩放光标提示）
+    for (QWidget *w : { static_cast<QWidget *>(m_stateLabel),
+                        static_cast<QWidget *>(m_msgTitle),
+                        static_cast<QWidget *>(m_msgSub),
+                        static_cast<QWidget *>(m_stageLabel),
+                        static_cast<QWidget *>(m_timeLabel) })
+        w->setMouseTracking(true);
 }
 
 MainWindow::~MainWindow()
 {
     m_prefs.setValue(QStringLiteral("window/pos"), pos());
+    m_prefs.setValue(QStringLiteral("window/size"), size());
     m_prefs.sync();
 }
 
@@ -148,13 +192,9 @@ void MainWindow::buildUi()
     head->addWidget(m_settingsBtn);
     root->addLayout(head);
 
-    // ---- 露露 ----
-    auto *petWrap = new QHBoxLayout;
-    petWrap->addStretch();
+    // ---- 露露（铺满可用区域；内部按 300x250 画布等比缩放居中 → 窗口可大可小）----
     m_pet = new PetWidget(this);
-    petWrap->addWidget(m_pet);
-    petWrap->addStretch();
-    root->addLayout(petWrap);
+    root->addWidget(m_pet, 1);
 
     // ---- 状态与时间 ----
     m_stateLabel = new QLabel(this);
@@ -376,6 +416,19 @@ void MainWindow::paintEvent(QPaintEvent *)
     p.setPen(QPen(border, 1));
     p.setBrush(Qt::NoBrush);
     p.drawPath(path);
+
+    // 右下角三点：提示可拖拽边缘自由缩放窗口（可大可小）
+    const int W = width(), H = height();
+    if (W > 70 && H > 70) {
+        QColor grip = palette().color(QPalette::WindowText);
+        grip.setAlpha(78);
+        p.setBrush(grip);
+        p.setPen(Qt::NoPen);
+        const qreal x0 = W - 16.0, y0 = H - 15.0;
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j <= i; ++j)
+                p.drawEllipse(QPointF(x0 - j * 5.0, y0 - i * 5.0), 1.4, 1.4);
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *e)
@@ -451,28 +504,116 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *ev)
 
 void MainWindow::mousePressEvent(QMouseEvent *e)
 {
-    if (e->button() == Qt::LeftButton && childAt(e->pos()) == this) {
-        m_dragging = true;
-        m_dragOffset = e->globalPosition().toPoint() - frameGeometry().topLeft();
-        e->accept();
+    if (e->button() == Qt::LeftButton) {
+        // 贴到窗口边缘 => 开始自由缩放（优先级高于拖动）
+        const int dir = hitTestEdges(e->position().toPoint(), size());
+        if (dir) {
+            beginResize(dir, e->globalPosition().toPoint());
+            e->accept();
+            return;
+        }
+        // 点按窗口空白处 => 拖动整个窗口
+        if (childAt(e->pos()) == this) {
+            m_dragging = true;
+            m_dragOffset = e->globalPosition().toPoint() - frameGeometry().topLeft();
+            e->accept();
+            return;
+        }
     }
     QWidget::mousePressEvent(e);
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent *e)
 {
+    if (m_resizing) {
+        doResize(e->globalPosition().toPoint());
+        e->accept();
+        return;
+    }
     if (m_dragging) {
         move(e->globalPosition().toPoint() - m_dragOffset);
         e->accept();
         return;
     }
+    // 无按键移动：悬停到边缘时给出可缩放的光标提示
+    updateHoverCursor(e->position().toPoint());
     QWidget::mouseMoveEvent(e);
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *e)
 {
+    if (m_resizing) {
+        endResize();
+        e->accept();
+        return;
+    }
     m_dragging = false;
     QWidget::mouseReleaseEvent(e);
+}
+
+// ---------- 无边框手动缩放实现 ----------
+void MainWindow::beginResize(int dir, const QPoint &globalPos)
+{
+    m_resizing = true;
+    m_resizeDir = dir;
+    m_resizeStart = globalPos;
+    m_resizeGeom = geometry();
+    // 重新评估布局最小尺寸作为缩放下限
+    if (layout())
+        layout()->activate();
+    const QSize hint = layout() ? layout()->totalMinimumSize() : minimumSize();
+    m_resizeMin = hint.expandedTo(QSize(230, 330));
+    setEdgeCursor(dir);
+}
+
+void MainWindow::doResize(const QPoint &globalPos)
+{
+    const QPoint d = globalPos - m_resizeStart;
+    QRect g = m_resizeGeom;
+    const int dir = m_resizeDir;
+    const int minW = m_resizeMin.width();
+    const int minH = m_resizeMin.height();
+
+    if (dir & 2) g.setRight(m_resizeGeom.right() + d.x()); // 右
+    if (dir & 8) g.setBottom(m_resizeGeom.bottom() + d.y()); // 下
+    if (dir & 1) g.setLeft(m_resizeGeom.left() + d.x());    // 左
+    if (dir & 4) g.setTop(m_resizeGeom.top() + d.y());      // 上
+
+    if (g.width() < minW) {
+        if (dir & 1) g.setLeft(g.right() - minW + 1);
+        else         g.setRight(g.left() + minW - 1);
+    }
+    if (g.height() < minH) {
+        if (dir & 4) g.setTop(g.bottom() - minH + 1);
+        else         g.setBottom(g.top() + minH - 1);
+    }
+    setGeometry(g);
+}
+
+void MainWindow::endResize()
+{
+    m_resizing = false;
+    m_resizeDir = 0;
+    unsetCursor();
+    // 立即记住新尺寸，下次启动恢复
+    m_prefs.setValue(QStringLiteral("window/size"), size());
+    m_prefs.sync();
+}
+
+void MainWindow::setEdgeCursor(int dir)
+{
+    const Qt::CursorShape shape = edgeCursorShape(dir);
+    if (shape == Qt::ArrowCursor)
+        unsetCursor();
+    else
+        setCursor(shape);
+}
+
+void MainWindow::updateHoverCursor(const QPoint &pos)
+{
+    if (m_resizing || m_dragging)
+        return;
+    setEdgeCursor(hitTestEdges(pos, size()));
 }
 
 // ---------- 状态刷新 ----------
