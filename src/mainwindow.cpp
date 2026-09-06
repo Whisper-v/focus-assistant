@@ -66,7 +66,8 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     setWindowIcon(QIcon(QStringLiteral(":/icons/focus-assistant.svg")));
     setAttribute(Qt::WA_TranslucentBackground);
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
-    setFixedWidth(360);
+    setFixedWidth(300);   // 更紧凑的小窗
+    setMinimumWidth(300);
 
     buildUi();
     buildSkinActions();
@@ -121,14 +122,14 @@ MainWindow::~MainWindow()
 void MainWindow::buildUi()
 {
     auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(24, 14, 24, 16);
-    root->setSpacing(2);
+    root->setContentsMargins(16, 10, 16, 12);
+    root->setSpacing(1);
 
     // ---- 顶栏 ----
     auto *head = new QHBoxLayout;
     auto *title = new QLabel(QStringLiteral("🌱 专注助手"), this);
     QFont tf = font();
-    tf.setPixelSize(15);
+    tf.setPixelSize(13);
     tf.setBold(true);
     title->setFont(tf);
     title->setObjectName(QStringLiteral("headTitle"));
@@ -137,13 +138,13 @@ void MainWindow::buildUi()
     m_statsBtn = new QPushButton(QStringLiteral("统计"), this);
     m_settingsBtn = new QPushButton(QStringLiteral("设置"), this);
     for (auto *b : { m_statsBtn, m_settingsBtn }) {
-        b->setFixedSize(46, 24);
+        b->setFixedSize(40, 22);
         b->setCursor(Qt::PointingHandCursor);
-        QFont bf = font(); bf.setPixelSize(11);
+        QFont bf = font(); bf.setPixelSize(10);
         b->setFont(bf);
     }
     head->addWidget(m_statsBtn);
-    head->addSpacing(4);
+    head->addSpacing(3);
     head->addWidget(m_settingsBtn);
     root->addLayout(head);
 
@@ -157,21 +158,21 @@ void MainWindow::buildUi()
 
     // ---- 状态与时间 ----
     m_stateLabel = new QLabel(this);
-    QFont sf = font(); sf.setPixelSize(13); sf.setBold(true);
+    QFont sf = font(); sf.setPixelSize(12); sf.setBold(true);
     m_stateLabel->setFont(sf);
     m_stateLabel->setAlignment(Qt::AlignCenter);
     root->addWidget(m_stateLabel);
 
     m_timeLabel = new QLabel(this);
     QFont clock = font();
-    clock.setPixelSize(42);
+    clock.setPixelSize(34);
     clock.setWeight(QFont::DemiBold);
     m_timeLabel->setFont(clock);
     m_timeLabel->setAlignment(Qt::AlignCenter);
     root->addWidget(m_timeLabel);
 
     m_stageLabel = new QLabel(this);
-    QFont stf = font(); stf.setPixelSize(11);
+    QFont stf = font(); stf.setPixelSize(10);
     m_stageLabel->setFont(stf);
     m_stageLabel->setAlignment(Qt::AlignCenter);
     m_stageLabel->setStyleSheet(QStringLiteral("color: rgba(130,130,130,0.9);"));
@@ -181,26 +182,26 @@ void MainWindow::buildUi()
 
     // ---- 操作按钮 ----
     auto *actions = new QHBoxLayout;
-    actions->setSpacing(10);
+    actions->setSpacing(8);
     m_primary = new DSuggestButton(this);
     m_secondary = new DPushButton(this);
-    m_primary->setMinimumHeight(34);
-    m_secondary->setMinimumHeight(34);
+    m_primary->setMinimumHeight(30);
+    m_secondary->setMinimumHeight(30);
     actions->addWidget(m_primary, 1);
     actions->addWidget(m_secondary, 1);
-    root->addSpacing(6);
+    root->addSpacing(4);
     root->addLayout(actions);
 
     // ---- 消息气泡 ----
     m_msgTitle = new QLabel(this);
-    QFont mtf = font(); mtf.setPixelSize(12); mtf.setBold(true);
+    QFont mtf = font(); mtf.setPixelSize(11); mtf.setBold(true);
     m_msgTitle->setFont(mtf);
     m_msgTitle->setAlignment(Qt::AlignCenter);
     m_msgTitle->setWordWrap(true);
     root->addWidget(m_msgTitle);
 
     m_msgSub = new QLabel(this);
-    QFont msf = font(); msf.setPixelSize(11);
+    QFont msf = font(); msf.setPixelSize(10);
     m_msgSub->setFont(msf);
     m_msgSub->setAlignment(Qt::AlignCenter);
     m_msgSub->setWordWrap(true);

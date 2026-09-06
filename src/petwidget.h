@@ -33,7 +33,9 @@ public:
     void startCelebration();
     Mood mood() const { return m_mood; }
 
-    QSize sizeHint() const override { return QSize(300, 250); }
+    // 设计坐标系固定为 300x250，paintEvent 中按实际尺寸等比缩放居中，
+    // 因此这里只决定控件在布局里占多大（窗口可做得更小巧）。
+    QSize sizeHint() const override { return QSize(246, 205); }
 
 protected:
     void paintEvent(QPaintEvent *) override;

@@ -9,7 +9,7 @@
 PetWidget::PetWidget(QWidget *parent)
     : QWidget(parent)
 {
-    setFixedSize(300, 250);
+    setFixedSize(246, 205); // 紧凑尺寸：paintEvent 会把 300x250 的绘制等比缩放居中
     setAttribute(Qt::WA_TranslucentBackground);
     applySkin();
     m_animTimer.setInterval(90);
@@ -201,6 +201,15 @@ void PetWidget::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
+
+    // 绘制基于 300x250 的虚拟坐标系；按控件实际大小等比缩放并居中，
+    // 保证窗口变小时露露等比缩小、不变形不裁切。
+    const qreal baseW = 300.0, baseH = 250.0;
+    const qreal s = qMin(width() / baseW, height() / baseH);
+    p.save();
+    p.translate((width() - baseW * s) / 2.0, (height() - baseH * s) / 2.0);
+    p.scale(s, s);
+
     drawRing(p);
     QPointF headPos;
     qreal headR = 20;
@@ -231,6 +240,7 @@ void PetWidget::paintEvent(QPaintEvent *)
     }
 
     drawParticles(p);
+    p.restore();
 }
 
 void PetWidget::drawRing(QPainter &p)
