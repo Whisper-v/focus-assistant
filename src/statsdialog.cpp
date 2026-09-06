@@ -92,34 +92,34 @@ StatsDialog::StatsDialog(FocusManager *mgr, QWidget *parent)
     root->setSpacing(10);
 
     m_summary = new QWidget(this);
-    auto *grid = new QGridLayout(m_summary);
-    grid->setContentsMargins(0, 0, 0, 0);
-    grid->setHorizontalSpacing(28);
-    auto makeItem = [&](const QString &title) {
+    auto *rowLay = new QHBoxLayout(m_summary);
+    rowLay->setContentsMargins(0, 0, 0, 0);
+    rowLay->setSpacing(28);
+    auto makeCard = [&](const QString &title, const char *objName) {
         auto *box = new QWidget(m_summary);
         auto *v = new QVBoxLayout(box);
         v->setContentsMargins(0, 0, 0, 0);
         v->setSpacing(2);
-        auto *cap = new QLabel(title, box);
-        QFont cf = font(); cf.setPixelSize(11);
-        cap->setFont(cf);
-        cap->setStyleSheet("color: rgba(127,127,127,0.95);");
         auto *val = new QLabel(QStringLiteral("--"), box);
         QFont vf = font(); vf.setPixelSize(20); vf.setBold(true);
         val->setFont(vf);
-        val->setObjectName("statVal");
+        val->setAlignment(Qt::AlignCenter);
+        val->setObjectName(QLatin1String(objName));
+        auto *cap = new QLabel(title, box);
+        QFont cf = font(); cf.setPixelSize(11);
+        cap->setFont(cf);
+        cap->setAlignment(Qt::AlignCenter);
+        cap->setStyleSheet(QStringLiteral("color: rgba(127,127,127,0.95);"));
         v->addWidget(val);
         v->addWidget(cap);
-        return val;
+        return box;
     };
-    auto *vToday = makeItem(QStringLiteral("今日专注"));
-    auto *vSessions = makeItem(QStringLiteral("完成次数"));
-    auto *vTotal = makeItem(QStringLiteral("累计专注"));
-    auto *vStage = makeItem(QStringLiteral("成长阶段"));
-    grid->addWidget(vToday, 0, 0);
-    grid->addWidget(vSessions, 0, 1);
-    grid->addWidget(vTotal, 0, 2);
-    grid->addWidget(vStage, 0, 3);
+    rowLay->addStretch();
+    rowLay->addWidget(makeCard(QStringLiteral("今日专注"), "valToday"));
+    rowLay->addWidget(makeCard(QStringLiteral("完成次数"), "valSessions"));
+    rowLay->addWidget(makeCard(QStringLiteral("累计专注"), "valTotal"));
+    rowLay->addWidget(makeCard(QStringLiteral("成长阶段"), "valStage"));
+    rowLay->addStretch();
     root->addWidget(m_summary);
 
     m_bars = new BarsWidget(m_mgr, this);
@@ -136,12 +136,6 @@ StatsDialog::StatsDialog(FocusManager *mgr, QWidget *parent)
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     btnRow->addWidget(closeBtn);
     root->addLayout(btnRow);
-
-    // 用 objectName 缓存引用便于刷新
-    vToday->setObjectName(QStringLiteral("valToday"));
-    vSessions->setObjectName(QStringLiteral("valSessions"));
-    vTotal->setObjectName(QStringLiteral("valTotal"));
-    vStage->setObjectName(QStringLiteral("valStage"));
 }
 
 void StatsDialog::showEvent(QShowEvent *event)
