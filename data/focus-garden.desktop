@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Focus Garden
+Name[zh_CN]=时光花园
+GenericName=Pomodoro Companion
+GenericName[zh_CN]=专注养成伴侣
+Comment=A cute plant that grows with your focus sessions
+Comment[zh_CN]=一棵随你的专注而成长的桌面小植物
+Exec=focus-garden
+Icon=focus-garden
+Terminal=false
+Categories=Utility;;
+Keywords=focus;timer;pomodoro;garden;pet;
+StartupNotify=true
+X-Deepin-Vendor=user-custom

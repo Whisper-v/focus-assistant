@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="icons/focus-garden.svg">focus-garden.svg</file>
+    </qresource>
+</RCC>
