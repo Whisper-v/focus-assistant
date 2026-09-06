@@ -83,7 +83,7 @@ StatsDialog::StatsDialog(FocusManager *mgr, QWidget *parent)
     : QDialog(parent)
     , m_mgr(mgr)
 {
-    setWindowTitle(QStringLiteral("时光花园 · 成长记录"));
+    setWindowTitle(QStringLiteral("专注助手 · 成长记录"));
     setFixedWidth(470);
     setMinimumHeight(340);
 

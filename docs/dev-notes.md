@@ -1,7 +1,7 @@
-# 开发过程说明 · 时光花园 Focus Garden
+# 开发过程说明 · 专注助手 Focus Assistant
 
 > deepin Skills 开发大赛（10 亿 Token 奖池）· 方向三：DTK 原生应用
-> 作品名：时光花园 Focus Garden（focus-garden） · License: GPL-3.0
+> 作品名：专注助手 Focus Assistant（focus-assistant） · License: GPL-3.0
 
 ## 一、用到的 Skill
 

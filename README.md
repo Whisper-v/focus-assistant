@@ -1,6 +1,6 @@
-# 🌱 时光花园 Focus Garden
+# 🌱 专注助手 Focus Assistant
 
-> 一棵住在你桌面角落、**随你的专注而成长**的陪伴型番茄钟。
+> 一棵住在你桌面角落、**随你的专注而成长**的小植物「露露」——你的桌面专注助手。
 
 **deepin Skills 开发大赛参赛作品** · 方向三：DTK 原生应用（`dtk-development`）
 基于 deepin 25 / UOS v25，DTK6 + Qt6（C++/Qt Widgets），纯矢量自绘无外部素材。
@@ -21,7 +21,7 @@
 - **低打扰常驻**：无边框毛玻璃小窗 + 系统托盘；按住露露即可拖动窗口，
   双击露露快速开始/暂停；关闭窗口收进托盘继续守护。
 - **本地优先**：所有统计（今日/最近 7 天/累计专注、完成次数、成长阶段）
-  保存在 `~/.config/focus-garden/`，无任何联网与隐私收集。
+  保存在 `~/.config/focus-assistant/`，无任何联网与隐私收集。
 
 ![focus](docs/screenshots/02-focus.png)
 
@@ -51,8 +51,8 @@
 sudo apt install build-essential cmake ninja-build git \
   qt6-base-dev qt6-declarative-dev libdtk6widget-dev libdtk6core-dev libdtk6gui-dev
 
-git clone <repo-url> focus-garden
-cd focus-garden
+git clone <repo-url> focus-assistant
+cd focus-assistant
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -C build
 ```
@@ -66,10 +66,10 @@ sudo ninja -C build install        # 卸载: sudo ninja -C build uninstall
 # 方式二：生成并安装 .deb（推荐，便于干净卸载）
 cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/usr
 cpack -G DEB -C Release --config build/CPackConfig.cmake
-sudo apt install ./focus-garden-1.0.0-amd64.deb   # 卸载: sudo apt remove focus-garden
+sudo apt install ./focus-assistant-1.0.0-amd64.deb   # 卸载: sudo apt remove focus-assistant
 ```
 
-安装后可在启动器搜索 **时光花园 / Focus Garden** 启动。
+安装后可在启动器搜索 **专注助手 / Focus Assistant** 启动。
 
 ## 🎮 使用
 

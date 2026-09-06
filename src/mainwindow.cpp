@@ -35,10 +35,10 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     : QWidget(parent)
     , m_mgr(mgr)
     , m_linker(linker)
-    , m_prefs(QStringLiteral("focus-garden"), QStringLiteral("focus-garden"))
+    , m_prefs(QStringLiteral("focus-assistant"), QStringLiteral("focus-assistant"))
 {
-    setWindowTitle(QStringLiteral("时光花园 Focus Garden"));
-    setWindowIcon(QIcon(QStringLiteral(":/icons/focus-garden.svg")));
+    setWindowTitle(QStringLiteral("专注助手 Focus Assistant"));
+    setWindowIcon(QIcon(QStringLiteral(":/icons/focus-assistant.svg")));
     setAttribute(Qt::WA_TranslucentBackground);
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setFixedWidth(360);
@@ -94,7 +94,7 @@ void MainWindow::buildUi()
 
     // ---- 顶栏 ----
     auto *head = new QHBoxLayout;
-    auto *title = new QLabel(QStringLiteral("🌱 时光花园"), this);
+    auto *title = new QLabel(QStringLiteral("🌱 专注助手"), this);
     QFont tf = font();
     tf.setPixelSize(15);
     tf.setBold(true);
@@ -189,8 +189,8 @@ void MainWindow::buildTray()
     if (!QSystemTrayIcon::isSystemTrayAvailable())
         return;
     m_tray = new QSystemTrayIcon(this);
-    m_tray->setIcon(QIcon(QStringLiteral(":/icons/focus-garden.svg")));
-    m_tray->setToolTip(QStringLiteral("时光花园 Focus Garden"));
+    m_tray->setIcon(QIcon(QStringLiteral(":/icons/focus-assistant.svg")));
+    m_tray->setToolTip(QStringLiteral("专注助手 Focus Assistant"));
 
     m_trayMenu = new QMenu(this);
     m_trayToggle = m_trayMenu->addAction(QStringLiteral("隐藏到托盘"));
@@ -255,7 +255,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
         hide();
         if (m_prefs.value(QStringLiteral("window/firstHide"), true).toBool()) {
             m_prefs.setValue(QStringLiteral("window/firstHide"), false);
-            m_tray->showMessage(QStringLiteral("时光花园"),
+            m_tray->showMessage(QStringLiteral("专注助手"),
                                 QStringLiteral("露露会继续在托盘里陪你，右键托盘图标可以退出"),
                                 QSystemTrayIcon::Information, 4000);
         }
@@ -553,7 +553,7 @@ void MainWindow::showStats()
 void MainWindow::openSettings()
 {
     QDialog dlg(this);
-    dlg.setWindowTitle(QStringLiteral("时光花园 · 设置"));
+    dlg.setWindowTitle(QStringLiteral("专注助手 · 设置"));
     dlg.setFixedWidth(420);
 
     auto *form = new QFormLayout(&dlg);

@@ -12,15 +12,15 @@ DWIDGET_USE_NAMESPACE
 int main(int argc, char *argv[])
 {
     DApplication app(argc, argv);
-    app.setOrganizationName(QStringLiteral("focus-garden"));
-    app.setApplicationName(QStringLiteral("focus-garden"));
-    app.setApplicationDisplayName(QStringLiteral("时光花园"));
+    app.setOrganizationName(QStringLiteral("focus-assistant"));
+    app.setApplicationName(QStringLiteral("focus-assistant"));
+    app.setApplicationDisplayName(QStringLiteral("专注助手"));
     app.setApplicationVersion(QStringLiteral("1.0.0"));
-    app.setWindowIcon(QIcon(QStringLiteral(":/icons/focus-garden.svg")));
+    app.setWindowIcon(QIcon(QStringLiteral(":/icons/focus-assistant.svg")));
     app.setQuitOnLastWindowClosed(false); // 主界面隐藏到托盘后保持运行
 
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("Focus Garden - a plant that grows with your focus"));
+    parser.setApplicationDescription(QStringLiteral("Focus Assistant - a plant that grows with your focus"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.process(app);

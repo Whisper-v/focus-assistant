@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="icons/focus-garden.svg">focus-garden.svg</file>
+        <file alias="icons/focus-assistant.svg">focus-assistant.svg</file>
     </qresource>
 </RCC>

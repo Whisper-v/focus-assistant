@@ -5,7 +5,7 @@ static const int kStageThresholdMinutes[4] = { 0, 15, 60, 200 }; // 成长阶段
 
 FocusManager::FocusManager(QObject *parent)
     : QObject(parent)
-    , m_settings(QStringLiteral("focus-garden"), QStringLiteral("focus-garden"))
+    , m_settings(QStringLiteral("focus-assistant"), QStringLiteral("focus-assistant"))
 {
     m_secondTimer.setInterval(1000);
     connect(&m_secondTimer, &QTimer::timeout, this, &FocusManager::onSecond);

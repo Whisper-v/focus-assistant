@@ -20,12 +20,12 @@ bool SystemLinker::readProperty(const QString &iface, const QString &prop, QVari
 {
     QDBusInterface dbus(kDisplayService, kDisplayPath, kDisplayIface, QDBusConnection::sessionBus());
     if (!dbus.isValid()) {
-        qWarning() << "[FocusGarden] Display1 not available";
+        qWarning() << "[FocusAssistant] Display1 not available";
         return false;
     }
     const QVariant v = dbus.property(prop.toLatin1());
     if (!v.isValid()) {
-        qWarning() << "[FocusGarden] read property failed:" << prop;
+        qWarning() << "[FocusAssistant] read property failed:" << prop;
         return false;
     }
     *out = v;
@@ -86,9 +86,9 @@ void SystemLinker::notify(const QString &title, const QString &body, int timeout
         QStringLiteral("org.freedesktop.Notifications"),
         QStringLiteral("Notify"));
     QVariantList args;
-    args << QStringLiteral("focus-garden")          // app_name
+    args << QStringLiteral("focus-assistant")          // app_name
          << QVariant(0U)                            // replaces_id
-         << QStringLiteral("focus-garden")          // app_icon
+         << QStringLiteral("focus-assistant")          // app_icon
          << title
          << body
          << QStringList()                           // actions
