@@ -121,7 +121,7 @@ void FocusManager::startFocus()
     m_elapsed = 0;
     m_secondTimer.start();
     setPhase(Focus);
-    emit statusMessage(QStringLiteral("一起专注吧"), QStringLiteral("露露为你施了「心无旁骛」的魔法"));
+    emit statusMessage(QStringLiteral("一起专注吧"), QStringLiteral("露为你施了「心无旁骛」的魔法"));
 }
 
 void FocusManager::pauseFocus()
@@ -130,7 +130,7 @@ void FocusManager::pauseFocus()
         return;
     m_secondTimer.stop();
     setPhase(Pause);
-    emit statusMessage(QStringLiteral("专注暂停中"), QStringLiteral("别走太远，露露会等你回来"));
+    emit statusMessage(QStringLiteral("专注暂停中"), QStringLiteral("别走太远，露会等你回来"));
 }
 
 void FocusManager::resumeFocus()
@@ -242,7 +242,7 @@ void FocusManager::finishBreak()
     setPhase(Idle);
     emit breakFinished(wasLong);
     emit statusMessage(QStringLiteral("休息结束啦"),
-                       wasLong ? QStringLiteral("长休完毕，露露满血复活！") : QStringLiteral("放松一下，效率更高"));
+                       wasLong ? QStringLiteral("长休完毕，露满血复活！") : QStringLiteral("放松一下，效率更高"));
 }
 
 void FocusManager::startBreak(bool longBreak)

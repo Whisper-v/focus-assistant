@@ -64,7 +64,7 @@ private:
     void updateSkinChecks();
     void applyPrefs();
     void setPinDesktop(bool on);   // 常驻：不受「显示桌面」影响
-    void setMinimalMode(bool on);  // 极简模式：只显示露露+进度环，白色面板透明
+    void setMinimalMode(bool on);  // 极简模式：只显示露+进度环，白色面板透明
     // 无边框窗口：自由缩放（可大可小）
     void beginResize(int dir, const QPoint &globalPos);
     void doResize(const QPoint &globalPos);

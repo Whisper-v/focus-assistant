@@ -10,7 +10,7 @@ PetWidget::PetWidget(QWidget *parent)
     : QWidget(parent)
 {
     // 尺寸交由父布局/窗口决定：paintEvent 会把 300x250 的虚拟画布等比缩放居中，
-    // 因此窗口放大时露露跟着变大，缩小时等比变小（可大可小）。
+    // 因此窗口放大时露跟着变大，缩小时等比变小（可大可小）。
     setMinimumSize(150, 125);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -42,10 +42,10 @@ PetWidget::Skin PetWidget::skinFromKey(const QString &key)
 QString PetWidget::skinName(Skin s)
 {
     switch (s) {
-    case Skin::Classic:   return QStringLiteral("经典粉花 · 露露");
+    case Skin::Classic:   return QStringLiteral("经典粉花 · 露");
     case Skin::Sunflower: return QStringLiteral("阳光向日葵");
     }
-    return QStringLiteral("经典粉花 · 露露");
+    return QStringLiteral("经典粉花 · 露");
 }
 
 void PetWidget::setSkin(Skin skin)
@@ -207,7 +207,7 @@ void PetWidget::paintEvent(QPaintEvent *)
     p.setRenderHint(QPainter::Antialiasing, true);
 
     // 绘制基于 300x250 的虚拟坐标系；按控件实际大小等比缩放并居中，
-    // 保证窗口变小时露露等比缩小、不变形不裁切。
+    // 保证窗口变小时露等比缩小、不变形不裁切。
     const qreal baseW = 300.0, baseH = 250.0;
     const qreal s = qMin(width() / baseW, height() / baseH);
     p.save();

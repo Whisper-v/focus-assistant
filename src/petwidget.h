@@ -7,7 +7,7 @@
 #include <QPointF>
 #include <QColor>
 
-// 露露 —— 一株长在花盆里、有表情的小花。
+// 露 —— 一株长在花盆里、有表情的小花。
 // 纯 QPainter 矢量绘制，无外部图片依赖；成长阶段 0..3 改变形态，
 // 通过 mood 表达专注/疲惫/开心/睡觉/庆祝等情绪，配合低频呼吸与眨眼动画。
 class PetWidget : public QWidget

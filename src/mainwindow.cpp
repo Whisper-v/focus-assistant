@@ -150,7 +150,7 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
         move(saved);
     }
 
-    // 双击露露 = 开始/暂停；按住露露或空白处 = 拖动窗口
+    // 双击露 = 开始/暂停；按住露或空白处 = 拖动窗口
     m_pet->installEventFilter(this);
     m_stateLabel->installEventFilter(this);
     m_msgTitle->installEventFilter(this);
@@ -196,11 +196,11 @@ void MainWindow::buildUi()
     m_minimalLabel = new QLabel(QStringLiteral("极简"), this);
     QFont mif = font(); mif.setPixelSize(10);
     m_minimalLabel->setFont(mif);
-    m_minimalLabel->setToolTip(QStringLiteral("极简模式：只显示露露与进度环，白色面板完全透明，像悬浮在桌面上一样"));
+    m_minimalLabel->setToolTip(QStringLiteral("极简模式：只显示露与进度环，白色面板完全透明，像悬浮在桌面上一样"));
     m_minimalSwitch = new DSwitchButton(this);
     m_minimalSwitch->setFixedSize(50, 24);
     m_minimalSwitch->setAccessibleName(QStringLiteral("极简模式开关"));
-    m_minimalSwitch->setToolTip(QStringLiteral("极简模式：只显示露露与专注进度环，白色面板变透明，像悬浮在桌面上一样\n开启后可右键露露或通过托盘菜单恢复完整界面"));
+    m_minimalSwitch->setToolTip(QStringLiteral("极简模式：只显示露与专注进度环，白色面板变透明，像悬浮在桌面上一样\n开启后可右键露或通过托盘菜单恢复完整界面"));
     m_minimalSwitch->setFocusPolicy(Qt::NoFocus);
     head->addWidget(m_minimalLabel);
     head->addSpacing(2);
@@ -219,7 +219,7 @@ void MainWindow::buildUi()
     head->addWidget(m_settingsBtn);
     root->addLayout(head);
 
-    // ---- 露露（铺满可用区域；内部按 300x250 画布等比缩放居中 → 窗口可大可小）----
+    // ---- 露（铺满可用区域；内部按 300x250 画布等比缩放居中 → 窗口可大可小）----
     m_pet = new PetWidget(this);
     root->addWidget(m_pet, 1);
 
@@ -283,14 +283,14 @@ void MainWindow::buildUi()
         setMinimalMode(on);
     });
 
-    // 记录“面板控件”：极简模式统一隐藏、只留露露
+    // 记录“面板控件”：极简模式统一隐藏、只留露
     m_chrome << title << m_minimalLabel << m_minimalSwitch
              << m_statsBtn << m_settingsBtn
              << m_stateLabel << m_timeLabel << m_stageLabel
              << m_primary << m_secondary << m_msgTitle << m_msgSub;
 
     // 初始提示
-    onStatusMessage(QStringLiteral("你好，我是露露"), QStringLiteral("点击「开始专注」，和我一起种下今天的第一朵花吧"));
+    onStatusMessage(QStringLiteral("你好，我是露"), QStringLiteral("点击「开始专注」，和我一起种下今天的第一朵花吧"));
 }
 
 void MainWindow::buildTray()
@@ -315,24 +315,24 @@ void MainWindow::buildTray()
         setPinDesktop(on);
         onStatusMessage(on ? QStringLiteral("已开启桌面常驻")
                            : QStringLiteral("已关闭桌面常驻"),
-                        on ? QStringLiteral("露露会一直待在桌面上，不受「显示桌面」影响")
-                           : QStringLiteral("露露会随「显示桌面」一起隐藏，需要时可在托盘重新开启"));
+                        on ? QStringLiteral("露会一直待在桌面上，不受「显示桌面」影响")
+                           : QStringLiteral("露会随「显示桌面」一起隐藏，需要时可在托盘重新开启"));
     });
     m_trayMenu->addSeparator();
     m_trayMinimal = m_trayMenu->addAction(QStringLiteral("极简模式 · 仅花朵+进度环"));
     m_trayMinimal->setCheckable(true);
-    m_trayMinimal->setToolTip(QStringLiteral("只显示露露与专注进度环，白色面板变透明；右键露露或托盘可恢复完整界面"));
+    m_trayMinimal->setToolTip(QStringLiteral("只显示露与专注进度环，白色面板变透明；右键露或托盘可恢复完整界面"));
     connect(m_trayMinimal, &QAction::triggered, this, [this](bool on) {
         setMinimalMode(on);
         onStatusMessage(on ? QStringLiteral("已开启极简模式")
                            : QStringLiteral("已退出极简模式"),
-                        on ? QStringLiteral("只留下露露和进度环，右键露露或托盘可恢复完整界面")
+                        on ? QStringLiteral("只留下露和进度环，右键露或托盘可恢复完整界面")
                            : QStringLiteral("已恢复完整界面"));
     });
     m_trayMenu->addSeparator();
     QAction *statsAct = m_trayMenu->addAction(QStringLiteral("成长记录"));
     m_trayMenu->addSeparator();
-    QMenu *skinSub = m_trayMenu->addMenu(QStringLiteral("换肤 · 露露的皮肤"));
+    QMenu *skinSub = m_trayMenu->addMenu(QStringLiteral("换肤 · 露的皮肤"));
     for (QAction *a : m_skinActs)
         skinSub->addAction(a);
     m_trayMenu->addSeparator();
@@ -350,7 +350,7 @@ void MainWindow::buildTray()
     m_tray->show();
 }
 
-// ---------- 自选皮肤：右键露露 / 托盘菜单 ----------
+// ---------- 自选皮肤：右键露 / 托盘菜单 ----------
 void MainWindow::buildSkinActions()
 {
     const PetWidget::Skin skins[] = {
@@ -379,7 +379,7 @@ void MainWindow::showSkinMenu(const QPoint &globalPos)
 {
     updateSkinChecks();
     QMenu menu(this);
-    // 极简模式下没有顶栏按钮，右键露露提供退出与功能入口
+    // 极简模式下没有顶栏按钮，右键露提供退出与功能入口
     if (m_minimal) {
         QAction *exitAct = menu.addAction(QStringLiteral("退出极简模式（恢复完整界面）"));
         connect(exitAct, &QAction::triggered, this, [this] { setMinimalMode(false); });
@@ -406,7 +406,7 @@ void MainWindow::applySkinKey(const QString &key)
     m_pet->setSkin(sk);
     updateSkinChecks();
     onStatusMessage(QStringLiteral("换肤成功"),
-                    QStringLiteral("露露现在是「%1」啦").arg(PetWidget::skinName(sk)));
+                    QStringLiteral("露现在是「%1」啦").arg(PetWidget::skinName(sk)));
 }
 
 void MainWindow::applyPrefs()
@@ -458,7 +458,7 @@ void MainWindow::setPinDesktop(bool on)
         m_trayPin->setChecked(on);
 }
 
-// ---------- 极简模式：只显示露露与进度环，白色面板透明 ----------
+// ---------- 极简模式：只显示露与进度环，白色面板透明 ----------
 void MainWindow::setMinimalMode(bool on)
 {
     if (on == m_minimal)
@@ -468,11 +468,11 @@ void MainWindow::setMinimalMode(bool on)
     if (on && m_normalGeom.isNull())
         m_normalGeom = geometry();      // 记住完整面板几何，退出时还原
 
-    for (QWidget *w : m_chrome)         // 隐藏/恢复除露露外的面板控件
+    for (QWidget *w : m_chrome)         // 隐藏/恢复除露外的面板控件
         w->setVisible(!on);
 
     if (on) {
-        // 收起成刚好容纳露露+进度环的透明画布
+        // 收起成刚好容纳露+进度环的透明画布
         const QSize target(300, 300);
         const QSize mn = minimumSizeHint().expandedTo(QSize(200, 240));
         resize(qMax(target.width(), mn.width()), qMax(target.height(), mn.height()));
@@ -497,7 +497,7 @@ void MainWindow::setMinimalMode(bool on)
 void MainWindow::paintEvent(QPaintEvent *)
 {
     if (m_minimal)
-        return;   // 极简模式：不画任何白色圆角背景，全透明只露出露露与进度环
+        return;   // 极简模式：不画任何白色圆角背景，全透明只露出露与进度环
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
     QColor base = palette().color(QPalette::Base);
@@ -535,7 +535,7 @@ void MainWindow::closeEvent(QCloseEvent *e)
         if (m_prefs.value(QStringLiteral("window/firstHide"), true).toBool()) {
             m_prefs.setValue(QStringLiteral("window/firstHide"), false);
             m_tray->showMessage(QStringLiteral("专注助手"),
-                                QStringLiteral("露露会继续在托盘里陪你，右键托盘图标可以退出"),
+                                QStringLiteral("露会继续在托盘里陪你，右键托盘图标可以退出"),
                                 QSystemTrayIcon::Information, 4000);
         }
         return;
@@ -761,7 +761,7 @@ void MainWindow::updateMoodAndText()
         m_pet->setProgress(0.0);
         break;
     case FocusManager::Focus:
-        state = QStringLiteral("专注中 · 露露为你守护");
+        state = QStringLiteral("专注中 · 露为你守护");
         mood = PetWidget::Focused;
         break;
     case FocusManager::Pause:
@@ -769,7 +769,7 @@ void MainWindow::updateMoodAndText()
         mood = PetWidget::Idle;
         break;
     case FocusManager::Break:
-        state = m_mgr->isLongBreak() ? QStringLiteral("长休息 · 露露在打盹") : QStringLiteral("休息中 · 露露在打盹");
+        state = m_mgr->isLongBreak() ? QStringLiteral("长休息 · 露在打盹") : QStringLiteral("休息中 · 露在打盹");
         mood = PetWidget::Sleepy;
         if (m_justCompleted) {
             m_pet->startCelebration();
@@ -890,8 +890,8 @@ void MainWindow::onFocusCompleted(int inRow, int stage)
     Q_UNUSED(stage)
     m_justCompleted = true;
     m_linker->onFocusEnded(); // 一段专注结束(进入休息)，恢复系统状态
-    notify(QStringLiteral("专注完成！"), QStringLiteral("露露伸了个懒腰：你太棒啦 🌸"));
-    onStatusMessage(QStringLiteral("专注完成！"), QStringLiteral("露露开出了一朵小花，快去休息一下"));
+    notify(QStringLiteral("专注完成！"), QStringLiteral("露伸了个懒腰：你太棒啦 🌸"));
+    onStatusMessage(QStringLiteral("专注完成！"), QStringLiteral("露开出了一朵小花，快去休息一下"));
     updateStageLabel();
 }
 
@@ -908,9 +908,9 @@ void MainWindow::onStageChanged(int stage)
     updateStageLabel();
     m_pet->setMood(PetWidget::Celebrate);
     m_pet->startCelebration();
-    notify(QStringLiteral("露露成长啦！"),
+    notify(QStringLiteral("露成长啦！"),
            QStringLiteral("已长成「%1」形态").arg(m_mgr->stageName()));
-    onStatusMessage(QStringLiteral("✦ 露露成长了 ✦"),
+    onStatusMessage(QStringLiteral("✦ 露成长了 ✦"),
                     QStringLiteral("现在的形态：%1").arg(m_mgr->stageName()));
     // 若在专注中成长，庆祝后回到专注表情
     if (m_mgr->phase() == FocusManager::Focus)
@@ -922,7 +922,7 @@ void MainWindow::onBreakFinished(bool wasLong)
     m_justCompleted = false;
     if (wasLong) {
         notify(QStringLiteral("长休息结束"), QStringLiteral("满电复活！开始新一轮专注吧"));
-        onStatusMessage(QStringLiteral("露露满电复活！"), QStringLiteral("新一轮专注，准备开始"));
+        onStatusMessage(QStringLiteral("露满电复活！"), QStringLiteral("新一轮专注，准备开始"));
     }
     updateMoodAndText();
     updateActions();
@@ -990,9 +990,9 @@ void MainWindow::openSettings()
     pinChk->setChecked(pinDesktop);
     pinChk->setToolTip(QStringLiteral("开启后窗口以置顶方式常驻桌面，点击“显示桌面”时不会被隐藏（需要 X11 会话支持）。\n关闭后恢复普通窗口行为。"));
 
-    auto *minimalChk = new QCheckBox(QStringLiteral("极简模式：只显示露露与进度环（背景透明）"), &dlg);
+    auto *minimalChk = new QCheckBox(QStringLiteral("极简模式：只显示露与进度环（背景透明）"), &dlg);
     minimalChk->setChecked(minimal);
-    minimalChk->setToolTip(QStringLiteral("开启后只保留露露和专注进度环，白色面板完全透明，像悬浮在桌面上一样；\n可右键露露或在托盘菜单中恢复完整界面。保持专注、双击露露开始/暂停等功能不变。"));
+    minimalChk->setToolTip(QStringLiteral("开启后只保留露和专注进度环，白色面板完全透明，像悬浮在桌面上一样；\n可右键露或在托盘菜单中恢复完整界面。保持专注、双击露开始/暂停等功能不变。"));
 
     auto *skinBox = new QComboBox(&dlg);
     skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Classic), QStringLiteral("classic"));
@@ -1014,7 +1014,7 @@ void MainWindow::openSettings()
     form->addRow(QStringLiteral("短休息"), breakBox);
     form->addRow(QStringLiteral("长休息(第 N 次后)"), longBox);
     form->addRow(QStringLiteral("长休息间隔"), perSpin);
-    form->addRow(QStringLiteral("露露的皮肤"), skinBox);
+    form->addRow(QStringLiteral("露的皮肤"), skinBox);
     form->addRow(QString(), pinChk);
     form->addRow(QString(), minimalChk);
     form->addRow(QString(), autoBreakChk);
@@ -1049,7 +1049,7 @@ void MainWindow::openSettings()
     setMinimalMode(minimalChk->isChecked());
     updateTimeLabel();
     updateActions();
-    onStatusMessage(QStringLiteral("设置已保存"), QStringLiteral("露露会按新的节奏陪你"));
+    onStatusMessage(QStringLiteral("设置已保存"), QStringLiteral("露会按新的节奏陪你"));
 }
 
 void MainWindow::notify(const QString &t, const QString &b)
