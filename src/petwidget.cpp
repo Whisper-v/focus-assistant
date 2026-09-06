@@ -324,6 +324,13 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
     p.save();
     p.translate(0, bob);
 
+    // ---------- 向日葵皮肤（PVZ 风格：大花盘 + 双层花瓣 + 招牌表情） ----------
+    if (m_skin == Skin::Sunflower) {
+        drawSunflowerPlant(p, headPos, headR);
+        p.restore();
+        return;
+    }
+
     // 主茎(随阶段变高)
     QPointF stemTop;
     qreal stemW = 6;
@@ -424,6 +431,253 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
     }
     drawFace(p, headPos, headR);
     p.restore();
+}
+
+// ---------------------------------------------------------------------------
+// 向日葵皮肤：整株植物（茎 / 叶 / 头 / 表情）PVZ 风格
+// ---------------------------------------------------------------------------
+void PetWidget::drawSunflowerPlant(QPainter &p, QPointF &headPos, qreal &headR)
+{
+    const int st = m_stage;
+    QPointF stemTop;
+    qreal stemW;
+    switch (st) {
+    case 0: stemTop = QPointF(150, 152); stemW = 4;  headPos = QPointF(150, 140); headR = 15.0; break;
+    case 1: stemTop = QPointF(150, 130); stemW = 5.5; headPos = QPointF(150, 118); headR = 17.0; break;
+    case 2: stemTop = QPointF(150, 134); stemW = 6.5; headPos = QPointF(150, 116); headR = 20.0; break;
+    default:stemTop = QPointF(150, 128); stemW = 7.5; headPos = QPointF(150, 110); headR = 29.0; break;
+    }
+
+    // 主茎
+    QPainterPath stem;
+    stem.moveTo(150, 186);
+    stem.quadTo(150, (186 + stemTop.y()) / 2.0 + 2, stemTop.x(), stemTop.y());
+    QPen stemPen(m_stem, stemW, Qt::SolidLine, Qt::RoundCap);
+    p.setPen(stemPen);
+    p.setBrush(Qt::NoBrush);
+    p.drawPath(stem);
+
+    // 叶子（随阶段变大）
+    if (st == 0)
+        drawLeaves(p, QPointF(150, 168), 9);
+    else if (st == 1)
+        drawLeaves(p, QPointF(150, 150), 12);
+    else if (st == 2)
+        drawLeaves(p, QPointF(150, 150), 13);
+    else
+        drawLeaves(p, QPointF(150, 152), 15);
+
+    if (st < 2) {
+        // 种子 / 幼苗：小绿脑袋 + 幼芽小表情
+        const QColor col = (st == 0) ? QColor("#c8e6a0") : QColor("#aedc7a");
+        QLinearGradient hg(headPos + QPointF(-headR, 0), headPos + QPointF(headR, 0));
+        hg.setColorAt(0.0, col.darker(118));
+        hg.setColorAt(0.55, col);
+        hg.setColorAt(1.0, col.darker(122));
+        p.setPen(QPen(QColor("#6da83a"), 1.8));
+        p.setBrush(hg);
+        p.drawEllipse(headPos, headR, headR);
+        // 头顶小嫩叶
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor("#9ccc65"));
+        p.drawEllipse(headPos + QPointF(-headR * 0.72, -headR * 0.35), headR * 0.42, headR * 0.20);
+        p.drawEllipse(headPos + QPointF(headR * 0.72, -headR * 0.35), headR * 0.42, headR * 0.20);
+        drawFace(p, headPos, headR);
+        return;
+    }
+
+    // 盛开：双层花瓣 + 棕色大花盘 + PVZ 脸
+    drawSunflowerBloom(p, headPos, headR, st);
+    drawSunflowerFace(p, headPos, headR);
+}
+
+// 画一圈射线状花瓣（向日葵 / 花盘外圈）
+void PetWidget::drawPetalRing(QPainter &p, const QPointF &c, qreal R, int n,
+                              qreal visibleLen, qreal len, const QColor &col, qreal off)
+{
+    p.save();
+    p.translate(c);
+    const qreal halfW = qMax<qreal>(2.6, len * 0.46);
+    const qreal baseY = -(R - len * 0.32);          // 基部藏进花盘
+    const qreal tipY  = -(R + visibleLen);
+    const qreal midY  = -(R + visibleLen * 0.42);
+    for (int k = 0; k < n; ++k) {
+        const qreal ang = 2.0 * M_PI * k / n + off;
+        p.save();
+        p.rotate(ang * 180.0 / M_PI);
+        QPainterPath pet;
+        pet.moveTo(-halfW * 0.5, baseY);
+        pet.quadTo(-halfW, midY, 0, tipY);
+        pet.quadTo(halfW, midY, halfW * 0.5, baseY);
+        pet.closeSubpath();
+        p.setPen(Qt::NoPen);
+        p.setBrush(col);
+        p.drawPath(pet);
+        p.restore();
+    }
+    p.restore();
+}
+
+// PVZ 向日葵花头：外深内浅双层花瓣 + 渐变棕色花盘
+void PetWidget::drawSunflowerBloom(QPainter &p, const QPointF &c, qreal R, int stage)
+{
+    if (stage == 3) {
+        QRadialGradient glow(c, R * 2.5);
+        glow.setColorAt(0.0, QColor(255, 236, 150, 80));
+        glow.setColorAt(1.0, QColor(255, 236, 150, 0));
+        p.setPen(Qt::NoPen);
+        p.setBrush(glow);
+        p.drawEllipse(c, R * 2.5, R * 2.5);
+
+        // 外层长瓣（深金） + 内层短瓣（亮黄，错位半格）
+        drawPetalRing(p, c, R, 14, R * 0.92, R * 0.72, QColor("#f59e0b"), 0.0);
+        drawPetalRing(p, c, R, 14, R * 0.55, R * 0.48, QColor("#ffce2e"), M_PI / 14.0);
+    } else {
+        // 初绽：单层 12 瓣
+        drawPetalRing(p, c, R, 12, R * 0.72, R * 0.62, QColor("#ffc21f"), 0.0);
+    }
+
+    // 花盘：暖棕径向渐变，边缘深
+    QRadialGradient disc(c, R);
+    disc.setColorAt(0.0, QColor("#a86f35"));
+    disc.setColorAt(0.72, QColor("#8f5b28"));
+    disc.setColorAt(1.0, QColor("#6f421a"));
+    p.setPen(QPen(QColor("#543114"), 1.8));
+    p.setBrush(disc);
+    p.drawEllipse(c, R, R);
+
+    // 花盘边缘淡淡的籽粒点（增强向日葵辨识度，不抢表情）
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(52, 28, 10, 52));
+    const int n = 24;
+    for (int i = 0; i < n; ++i) {
+        const qreal a = 2.0 * M_PI * i / n + M_PI / n;
+        p.drawEllipse(QPointF(c.x() + qCos(a) * R * 0.86,
+                              c.y() + qSin(a) * R * 0.86),
+                      R * 0.045, R * 0.045);
+    }
+}
+
+// PVZ 向日葵招牌表情：竖长圆角眼 + 高光 + 大大张开的笑
+void PetWidget::drawSunflowerFace(QPainter &p, const QPointF &c, qreal r)
+{
+    const QColor ink("#291708");
+    const qreal ex = r * 0.44;
+    const qreal ey = c.y() - r * 0.02;
+    const qreal ew = r * 0.135;    // 眼半宽
+    const qreal eh = r * 0.30;     // 眼半高
+    const QPointF ecL(c.x() - ex, ey);
+    const QPointF ecR(c.x() + ex, ey);
+
+    auto drawOpenEyes = [&]() {
+        p.setPen(Qt::NoPen);
+        p.setBrush(ink);
+        p.drawRoundedRect(QRectF(ecL.x() - ew, ecL.y() - eh, ew * 2, eh * 2), ew * 0.9, ew * 0.9);
+        p.drawRoundedRect(QRectF(ecR.x() - ew, ecR.y() - eh, ew * 2, eh * 2), ew * 0.9, ew * 0.9);
+        // 高光点
+        p.setBrush(QColor(255, 255, 255, 235));
+        p.drawEllipse(QPointF(ecL.x() - ew * 0.28, ecL.y() - eh * 0.55), ew * 0.34, eh * 0.22);
+        p.drawEllipse(QPointF(ecR.x() - ew * 0.28, ecR.y() - eh * 0.55), ew * 0.34, eh * 0.22);
+    };
+    auto drawClosedHappy = [&](qreal k) {   // ∩ 眯眯笑
+        p.setBrush(Qt::NoBrush);
+        QPen pen(ink, qMax(2.0, r * 0.07), Qt::SolidLine, Qt::RoundCap);
+        p.setPen(pen);
+        QRectF bl(ecL.x() - ew * 1.5 * k, ecL.y() - eh * 1.1, ew * 3.0 * k, eh * 2.2);
+        QRectF br(ecR.x() - ew * 1.5 * k, ecR.y() - eh * 1.1, ew * 3.0 * k, eh * 2.2);
+        p.drawArc(bl, 180 * 16, -180 * 16);
+        p.drawArc(br, 180 * 16, -180 * 16);
+    };
+    auto drawDroopy = [&]() {       // 疲惫 ∪
+        p.setBrush(Qt::NoBrush);
+        QPen pen(ink, qMax(2.0, r * 0.06), Qt::SolidLine, Qt::RoundCap);
+        p.setPen(pen);
+        QRectF bl(ecL.x() - ew * 1.4, ecL.y() - eh * 0.4, ew * 2.8, eh * 1.4);
+        QRectF br(ecR.x() - ew * 1.4, ecR.y() - eh * 0.4, ew * 2.8, eh * 1.4);
+        p.drawArc(bl, 20 * 16, -150 * 16);
+        p.drawArc(br, 20 * 16, -150 * 16);
+    };
+    auto drawSleepLines = [&]() {
+        QPen pen(ink, qMax(2.0, r * 0.06), Qt::SolidLine, Qt::RoundCap);
+        p.setPen(pen);
+        p.setBrush(Qt::NoBrush);
+        p.drawLine(QPointF(ecL.x() - ew, ecL.y()), QPointF(ecL.x() + ew, ecL.y()));
+        p.drawLine(QPointF(ecR.x() - ew, ecR.y()), QPointF(ecR.x() + ew, ecR.y()));
+    };
+
+    // 张开的笑（开口笑，深色口腔）
+    auto drawBigSmile = [&](qreal wf, qreal df) {
+        QPainterPath mo;
+        const qreal mw = r * wf;
+        const qreal my = c.y() + r * 0.20;
+        mo.moveTo(c.x() - mw, my);
+        mo.quadTo(c.x() - mw * 0.45, my + r * df, c.x(), my + r * (df + 0.07));
+        mo.quadTo(c.x() + mw * 0.45, my + r * df, c.x() + mw, my);
+        // 上唇（中间略下垂的弧线）
+        mo.quadTo(c.x() + mw * 0.5, my - r * 0.02, c.x(), my + r * 0.09);
+        mo.quadTo(c.x() - mw * 0.5, my - r * 0.02, c.x() - mw, my);
+        mo.closeSubpath();
+        p.setPen(Qt::NoPen);
+        p.setBrush(ink);
+        p.drawPath(mo);
+    };
+
+    bool blush = false;
+    switch (m_mood) {
+    case Idle: {
+        if (m_blinking) {
+            QPen pen(ink, qMax(2.0, r * 0.06), Qt::SolidLine, Qt::RoundCap);
+            p.setPen(pen);
+            p.setBrush(Qt::NoBrush);
+            p.drawLine(QPointF(ecL.x() - ew, ecL.y()), QPointF(ecL.x() + ew, ecL.y()));
+            p.drawLine(QPointF(ecR.x() - ew, ecR.y()), QPointF(ecR.x() + ew, ecR.y()));
+        } else {
+            drawOpenEyes();
+        }
+        drawBigSmile(0.30, 0.20);
+        break;
+    }
+    case Focused: {          // 专注：闭眼努力 + 小“o”嘴
+        drawClosedHappy(0.8);
+        p.setBrush(ink);
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.36), r * 0.075, r * 0.09);
+        blush = true;
+        break;
+    }
+    case Happy: {            // 开心：∩∩ + 大笑
+        drawClosedHappy(1.0);
+        drawBigSmile(0.36, 0.26);
+        blush = true;
+        break;
+    }
+    case Tired: {            // 疲惫：耷拉眼 + 小弧线嘴
+        drawDroopy();
+        QPen pen(ink, qMax(2.0, r * 0.05), Qt::SolidLine, Qt::RoundCap);
+        p.setPen(pen);
+        p.setBrush(Qt::NoBrush);
+        p.drawArc(QRectF(c.x() - r * 0.18, c.y() + r * 0.22, r * 0.36, r * 0.2), 200 * 16, -130 * 16);
+        break;
+    }
+    case Sleepy:             // 睡觉：线眼 + 小圆嘴
+        drawSleepLines();
+        p.setPen(Qt::NoPen);
+        p.setBrush(ink);
+        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.34), r * 0.07, r * 0.06);
+        break;
+    case Celebrate:          // 雀跃：∩∩ + 超大张嘴
+        drawClosedHappy(1.15);
+        drawBigSmile(0.40, 0.30);
+        blush = true;
+        break;
+    }
+
+    if (blush) {
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(255, 158, 128, 110));
+        p.drawEllipse(QPointF(c.x() - r * 0.66, c.y() + r * 0.28), r * 0.10, r * 0.065);
+        p.drawEllipse(QPointF(c.x() + r * 0.66, c.y() + r * 0.28), r * 0.10, r * 0.065);
+    }
 }
 
 void PetWidget::drawFace(QPainter &p, const QPointF &c, qreal r)

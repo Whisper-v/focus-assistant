@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QPoint>
+#include <QList>
 #include <QSettings>
 
 #include "focusmanager.h"
@@ -53,6 +54,10 @@ private slots:
 private:
     void buildUi();
     void buildTray();
+    void buildSkinActions();
+    void showSkinMenu(const QPoint &globalPos);
+    void applySkinKey(const QString &key);
+    void updateSkinChecks();
     void applyPrefs();
     void updateMoodAndText();
     void updateActions();
@@ -77,6 +82,7 @@ private:
     QMenu *m_trayMenu = nullptr;
     QAction *m_trayPlay = nullptr;
     QAction *m_trayToggle = nullptr;
+    QList<QAction *> m_skinActs;
     QSettings m_prefs;
     bool m_quitting = false;
     bool m_dragging = false;

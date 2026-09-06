@@ -48,6 +48,11 @@ private:
     void drawPot(QPainter &p);
     void drawPlant(QPainter &p, QPointF &headPos, qreal &headR);
     void drawFace(QPainter &p, const QPointF &c, qreal r);
+    void drawSunflowerPlant(QPainter &p, QPointF &headPos, qreal &headR);
+    void drawSunflowerFace(QPainter &p, const QPointF &c, qreal r);
+    void drawSunflowerBloom(QPainter &p, const QPointF &c, qreal R, int stage);
+    void drawPetalRing(QPainter &p, const QPointF &c, qreal R, int n,
+                       qreal visibleLen, qreal len, const QColor &col, qreal off);
     void drawLeaves(QPainter &p, const QPointF &base, qreal size);
     void drawParticles(QPainter &p);
     void spawnCelebrationParticle();

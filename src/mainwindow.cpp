@@ -44,8 +44,10 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     setFixedWidth(360);
 
     buildUi();
+    buildSkinActions();
     buildTray();
     applyPrefs();
+    updateSkinChecks();
     m_linker->recoverFromCrash(); // 若上次被强杀，先清理可能残留的系统色温
 
     connect(m_mgr, &FocusManager::phaseChanged, this, &MainWindow::onPhaseChanged);
@@ -203,6 +205,10 @@ void MainWindow::buildTray()
     m_trayMenu->addSeparator();
     QAction *statsAct = m_trayMenu->addAction(QStringLiteral("成长记录"));
     m_trayMenu->addSeparator();
+    QMenu *skinSub = m_trayMenu->addMenu(QStringLiteral("换肤 · 露露的皮肤"));
+    for (QAction *a : m_skinActs)
+        skinSub->addAction(a);
+    m_trayMenu->addSeparator();
     QAction *quitAct = m_trayMenu->addAction(QStringLiteral("退出"));
 
     connect(m_trayToggle, &QAction::triggered, this, &MainWindow::toggleVisible);
@@ -215,6 +221,54 @@ void MainWindow::buildTray()
     });
     m_tray->setContextMenu(m_trayMenu);
     m_tray->show();
+}
+
+// ---------- 自选皮肤：右键露露 / 托盘菜单 ----------
+void MainWindow::buildSkinActions()
+{
+    const PetWidget::Skin skins[] = {
+        PetWidget::Skin::Classic,
+        PetWidget::Skin::Sunflower
+    };
+    for (PetWidget::Skin sk : skins) {
+        auto *act = new QAction(PetWidget::skinName(sk), this);
+        act->setCheckable(true);
+        act->setData(PetWidget::skinKey(sk));
+        connect(act, &QAction::triggered, this, [this, act] {
+            applySkinKey(act->data().toString());
+        });
+        m_skinActs.append(act);
+    }
+}
+
+void MainWindow::updateSkinChecks()
+{
+    const QString cur = PetWidget::skinKey(m_pet->skin());
+    for (QAction *a : m_skinActs)
+        a->setChecked(a->data().toString() == cur);
+}
+
+void MainWindow::showSkinMenu(const QPoint &globalPos)
+{
+    updateSkinChecks();
+    QMenu menu(this);
+    for (QAction *a : m_skinActs)
+        menu.addAction(a);
+    menu.exec(globalPos);
+}
+
+void MainWindow::applySkinKey(const QString &key)
+{
+    const PetWidget::Skin sk = PetWidget::skinFromKey(key);
+    if (m_pet->skin() == sk)
+        return;
+    m_prefs.beginGroup(QStringLiteral("prefs"));
+    m_prefs.setValue(QStringLiteral("skin"), key);
+    m_prefs.endGroup();
+    m_pet->setSkin(sk);
+    updateSkinChecks();
+    onStatusMessage(QStringLiteral("换肤成功"),
+                    QStringLiteral("露露现在是「%1」啦").arg(PetWidget::skinName(sk)));
 }
 
 void MainWindow::applyPrefs()
@@ -236,6 +290,7 @@ void MainWindow::applyPrefs()
     const QString skin = m_prefs.value(QStringLiteral("skin"), QStringLiteral("classic")).toString();
     m_pet->setSkin(PetWidget::skinFromKey(skin));
     m_prefs.endGroup();
+    updateSkinChecks();
 }
 
 void MainWindow::paintEvent(QPaintEvent *)
@@ -306,6 +361,10 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *ev)
         }
         if (ev->type() == QEvent::MouseButtonPress) {
             auto *me = static_cast<QMouseEvent *>(ev);
+            if (me->button() == Qt::RightButton) {
+                showSkinMenu(me->globalPosition().toPoint());
+                return true;
+            }
             if (me->button() == Qt::LeftButton) {
                 m_dragging = true;
                 m_dragOffset = me->globalPosition().toPoint() - frameGeometry().topLeft();
