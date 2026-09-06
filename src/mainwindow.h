@@ -59,6 +59,7 @@ private:
     void applySkinKey(const QString &key);
     void updateSkinChecks();
     void applyPrefs();
+    void setPinDesktop(bool on);   // 常驻：不受「显示桌面」影响
     void updateMoodAndText();
     void updateActions();
     void updateStageLabel();
@@ -81,6 +82,7 @@ private:
     QSystemTrayIcon *m_tray = nullptr;
     QMenu *m_trayMenu = nullptr;
     QAction *m_trayPlay = nullptr;
+    QAction *m_trayPin = nullptr;
     QAction *m_trayToggle = nullptr;
     QList<QAction *> m_skinActs;
     QSettings m_prefs;

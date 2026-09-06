@@ -203,6 +203,20 @@ void MainWindow::buildTray()
     m_trayToggle = m_trayMenu->addAction(QStringLiteral("隐藏到托盘"));
     m_trayPlay = m_trayMenu->addAction(QStringLiteral("开始专注"));
     m_trayMenu->addSeparator();
+    m_trayPin = m_trayMenu->addAction(QStringLiteral("桌面常驻"));
+    m_trayPin->setCheckable(true);
+    m_trayPin->setToolTip(QStringLiteral("勾选后窗口常驻桌面（置顶显示），点击“显示桌面”也不会被隐藏"));
+    connect(m_trayPin, &QAction::triggered, this, [this](bool on) {
+        m_prefs.beginGroup(QStringLiteral("prefs"));
+        m_prefs.setValue(QStringLiteral("pinDesktop"), on);
+        m_prefs.endGroup();
+        setPinDesktop(on);
+        onStatusMessage(on ? QStringLiteral("已开启桌面常驻")
+                           : QStringLiteral("已关闭桌面常驻"),
+                        on ? QStringLiteral("露露会一直待在桌面上，不受「显示桌面」影响")
+                           : QStringLiteral("露露会随「显示桌面」一起隐藏，需要时可在托盘重新开启"));
+    });
+    m_trayMenu->addSeparator();
     QAction *statsAct = m_trayMenu->addAction(QStringLiteral("成长记录"));
     m_trayMenu->addSeparator();
     QMenu *skinSub = m_trayMenu->addMenu(QStringLiteral("换肤 · 露露的皮肤"));
@@ -289,8 +303,35 @@ void MainWindow::applyPrefs()
 
     const QString skin = m_prefs.value(QStringLiteral("skin"), QStringLiteral("classic")).toString();
     m_pet->setSkin(PetWidget::skinFromKey(skin));
+    const bool pin = m_prefs.value(QStringLiteral("pinDesktop"), false).toBool();
     m_prefs.endGroup();
     updateSkinChecks();
+    setPinDesktop(pin);
+}
+
+// ---------- 桌面常驻：不受「显示桌面」影响 ----------
+void MainWindow::setPinDesktop(bool on)
+{
+    // X11 下用 override-redirect(绕过窗口管理器)实现：WM 无法把窗口最小化/隐藏，
+    // 因此「显示桌面」不影响它；同时加置顶，窗口始终可见。非 X11 会话退化为普通置顶。
+    const bool x11 = QGuiApplication::platformName() == QLatin1String("xcb");
+    Qt::WindowFlags f = Qt::Window | Qt::FramelessWindowHint;
+    if (on) {
+        f |= Qt::WindowStaysOnTopHint;
+        if (x11)
+            f |= Qt::X11BypassWindowManagerHint;
+    }
+    const bool wasVisible = isVisible();
+    if (f != windowFlags()) {
+        setWindowFlags(f);
+        setAttribute(Qt::WA_TranslucentBackground); // 保持自绘圆角透明背景
+        if (wasVisible) {
+            show();          // setWindowFlags 会隐式 hide，需重新显示
+            raise();
+        }
+    }
+    if (m_trayPin)
+        m_trayPin->setChecked(on);
 }
 
 void MainWindow::paintEvent(QPaintEvent *)
@@ -636,6 +677,7 @@ void MainWindow::openSettings()
     const bool autoBreak = m_prefs.value(QStringLiteral("autoBreak"), true).toBool();
     const bool eyeProtect = m_prefs.value(QStringLiteral("eyeProtect"), false).toBool();
     const int eyeTemp = m_prefs.value(QStringLiteral("eyeTemp"), 3500).toInt();
+    const bool pinDesktop = m_prefs.value(QStringLiteral("pinDesktop"), false).toBool();
     m_prefs.endGroup();
 
     auto *focusBox = new QComboBox(&dlg);
@@ -661,6 +703,10 @@ void MainWindow::openSettings()
     auto *autoBreakChk = new QCheckBox(QStringLiteral("专注结束后自动进入休息"), &dlg);
     autoBreakChk->setChecked(autoBreak);
 
+    auto *pinChk = new QCheckBox(QStringLiteral("桌面常驻：不受「显示桌面」影响"), &dlg);
+    pinChk->setChecked(pinDesktop);
+    pinChk->setToolTip(QStringLiteral("开启后窗口以置顶方式常驻桌面，点击“显示桌面”时不会被隐藏（需要 X11 会话支持）。\n关闭后恢复普通窗口行为。"));
+
     auto *skinBox = new QComboBox(&dlg);
     skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Classic), QStringLiteral("classic"));
     skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Sunflower), QStringLiteral("sunflower"));
@@ -682,6 +728,7 @@ void MainWindow::openSettings()
     form->addRow(QStringLiteral("长休息(第 N 次后)"), longBox);
     form->addRow(QStringLiteral("长休息间隔"), perSpin);
     form->addRow(QStringLiteral("露露的皮肤"), skinBox);
+    form->addRow(QString(), pinChk);
     form->addRow(QString(), autoBreakChk);
     form->addRow(QString(), eyeChk);
     form->addRow(QStringLiteral("护眼色温"), tempBox);
@@ -702,6 +749,7 @@ void MainWindow::openSettings()
     m_prefs.setValue(QStringLiteral("longBreakMin"), longBox->currentData().toInt());
     m_prefs.setValue(QStringLiteral("perLong"), perSpin->value());
     m_prefs.setValue(QStringLiteral("autoBreak"), autoBreakChk->isChecked());
+    m_prefs.setValue(QStringLiteral("pinDesktop"), pinChk->isChecked());
     m_prefs.setValue(QStringLiteral("skin"), skinBox->currentData().toString());
     m_prefs.setValue(QStringLiteral("eyeProtect"), eyeChk->isChecked());
     m_prefs.setValue(QStringLiteral("eyeTemp"), tempBox->currentData().toInt());
