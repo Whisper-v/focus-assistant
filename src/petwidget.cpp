@@ -11,11 +11,81 @@ PetWidget::PetWidget(QWidget *parent)
 {
     setFixedSize(300, 250);
     setAttribute(Qt::WA_TranslucentBackground);
+    applySkin();
     m_animTimer.setInterval(90);
     connect(&m_animTimer, &QTimer::timeout, this, &PetWidget::onAnimTick);
     m_blinkTimer.setInterval(2400);
     connect(&m_blinkTimer, &QTimer::timeout, this, &PetWidget::onBlinkTimeout);
     m_blinkTimer.start();
+}
+
+QString PetWidget::skinKey(Skin s)
+{
+    switch (s) {
+    case Skin::Classic:   return QStringLiteral("classic");
+    case Skin::Sunflower: return QStringLiteral("sunflower");
+    }
+    return QStringLiteral("classic");
+}
+
+PetWidget::Skin PetWidget::skinFromKey(const QString &key)
+{
+    if (key == QStringLiteral("sunflower"))
+        return Skin::Sunflower;
+    return Skin::Classic;
+}
+
+QString PetWidget::skinName(Skin s)
+{
+    switch (s) {
+    case Skin::Classic:   return QStringLiteral("经典粉花 · 露露");
+    case Skin::Sunflower: return QStringLiteral("阳光向日葵");
+    }
+    return QStringLiteral("经典粉花 · 露露");
+}
+
+void PetWidget::setSkin(Skin skin)
+{
+    if (skin == m_skin)
+        return;
+    m_skin = skin;
+    applySkin();
+    update();
+}
+
+void PetWidget::applySkin()
+{
+    switch (m_skin) {
+    case Skin::Sunflower:
+        m_petal      = QColor("#ffb300");              // 阳光金
+        m_petalSoft  = QColor("#ffc94d");
+        m_petal2     = QColor(255, 213, 79, 200);      // 内层亮金
+        m_disc       = QColor("#8a5a2b");              // 棕色大花盘
+        m_discBorder = QColor("#5b3a1e");
+        m_faceInk    = QColor("#3e2723");
+        m_stem       = QColor("#558b2f");
+        m_leafA      = QColor("#9ccc65");
+        m_leafB      = QColor("#7cb342");
+        m_headCol0   = QColor("#c5e1a5");
+        m_headCol1   = QColor("#aed581");
+        m_headBorder = QColor("#558b2f");
+        break;
+    case Skin::Classic:
+    default:
+        m_petal      = QColor("#ff8fae");
+        m_petalSoft  = QColor("#ffa3bc");
+        m_petal2     = QColor(255, 175, 198, 200);
+        m_disc       = QColor("#ffe08a");
+        m_discBorder = QColor("#e0a62e");
+        m_faceInk    = QColor("#5d4037");
+        m_stem       = QColor("#7cb342");
+        m_leafA      = QColor("#aed581");
+        m_leafB      = QColor("#8bc34a");
+        m_headCol0   = QColor("#b7e39c");
+        m_headCol1   = QColor("#a5dc7d");
+        m_headBorder = QColor("#689f38");
+        break;
+    }
 }
 
 void PetWidget::setStage(int stage)
@@ -224,7 +294,7 @@ void PetWidget::drawPot(QPainter &p)
 
 void PetWidget::drawLeaves(QPainter &p, const QPointF &base, qreal size)
 {
-    QPen stemPen(QColor("#7cb342"), 2.2, Qt::SolidLine, Qt::RoundCap);
+    QPen stemPen(m_stem, 2.2, Qt::SolidLine, Qt::RoundCap);
     p.setPen(stemPen);
     // 左叶
     QPainterPath l;
@@ -238,10 +308,10 @@ void PetWidget::drawLeaves(QPainter &p, const QPointF &base, qreal size)
     p.drawPath(r);
 
     p.setPen(Qt::NoPen);
-    p.setBrush(QColor("#aed581"));
+    p.setBrush(m_leafA);
     p.drawEllipse(base + QPointF(-size * 1.05, -size * 0.12), size * 0.62, size * 0.30);
     p.drawEllipse(base + QPointF(size * 1.05, -size * 0.12), size * 0.62, size * 0.30);
-    p.setBrush(QColor("#8bc34a"));
+    p.setBrush(m_leafB);
     p.drawEllipse(base + QPointF(-size * 1.05, -size * 0.12), size * 0.36, size * 0.20);
     p.drawEllipse(base + QPointF(size * 1.05, -size * 0.12), size * 0.36, size * 0.20);
 }
@@ -273,7 +343,7 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
     QPainterPath stem;
     stem.moveTo(150, 186);
     stem.quadTo(150, (186 + stemTop.y()) / 2.0 + 2, stemTop.x(), stemTop.y());
-    QPen stemPen(QColor("#7cb342"), stemW, Qt::SolidLine, Qt::RoundCap);
+    QPen stemPen(m_stem, stemW, Qt::SolidLine, Qt::RoundCap);
     p.setPen(stemPen);
     p.setBrush(Qt::NoBrush);
     p.drawPath(stem);
@@ -301,7 +371,7 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
             p.drawEllipse(headPos, headR * 2.6, headR * 2.6);
         }
         // 花瓣
-        const QColor petal = (m_stage == 3) ? QColor("#ff8fae") : QColor("#ffa3bc");
+        const QColor petal = (m_stage == 3) ? m_petal : m_petalSoft;
         for (int k = 0; k < 6; ++k) {
             p.save();
             p.translate(headPos);
@@ -317,21 +387,38 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
                 p.translate(headPos);
                 p.rotate(k * 60.0 + 30.0);
                 p.setPen(Qt::NoPen);
-                p.setBrush(QColor(255, 175, 198, 200));
+                p.setBrush(m_petal2);
                 p.drawEllipse(QPointF(0, -(headR + 16)), headR * 0.4, headR * 0.24);
                 p.restore();
             }
         }
         // 花盘
-        p.setPen(QPen(QColor("#e0a62e"), 2));
-        p.setBrush(QColor("#ffe08a"));
+        p.setPen(QPen(m_discBorder, 2));
+        p.setBrush(m_disc);
         p.drawEllipse(headPos, headR, headR);
+        if (m_skin == Skin::Sunflower) {
+            // 花盘上点缀葵花籽点，增加向日葵辨识度
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(m_faceInk.red(), m_faceInk.green(), m_faceInk.blue(), 95));
+            const int rings = (m_stage == 3) ? 2 : 1;
+            for (int ring = 1; ring <= rings; ++ring) {
+                const qreal rr = headR * (ring == 1 ? 0.42 : 0.78);
+                const int n = ring == 1 ? 6 : 12;
+                const qreal off = (ring == 1) ? 0.0 : M_PI / n;
+                for (int i = 0; i < n; ++i) {
+                    const qreal a = 2.0 * M_PI * i / n + off;
+                    p.drawEllipse(QPointF(headPos.x() + qCos(a) * rr,
+                                          headPos.y() + qSin(a) * rr),
+                                  headR * 0.055, headR * 0.055);
+                }
+            }
+        }
     }
 
     // 头(画表情的基底)
     if (m_stage < 2) {
-        QColor headCol = (m_stage == 0) ? QColor("#b7e39c") : QColor("#a5dc7d");
-        p.setPen(QPen(QColor("#689f38"), 2));
+        QColor headCol = (m_stage == 0) ? m_headCol0 : m_headCol1;
+        p.setPen(QPen(m_headBorder, 2));
         p.setBrush(headCol);
         p.drawEllipse(headPos, headR, headR);
     }
@@ -341,7 +428,7 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
 
 void PetWidget::drawFace(QPainter &p, const QPointF &c, qreal r)
 {
-    const QColor ink("#5d4037");
+    const QColor ink = m_faceInk;
     const qreal ex = r * 0.34;
     const QPointF el(c.x() - ex, c.y() - r * 0.08);
     const QPointF er(c.x() + ex, c.y() - r * 0.08);

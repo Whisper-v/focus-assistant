@@ -59,6 +59,7 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     // 兜底：无论何种方式退出，都还原我们开启的护眼色温
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this] { m_linker->onFocusEnded(); });
 
+    m_pet->setStage(m_mgr->stage()); // 启动即同步存档中的成长阶段
     updateMoodAndText();
     updateActions();
     updateStageLabel();
@@ -231,6 +232,9 @@ void MainWindow::applyPrefs()
     const int eyeTemp = m_prefs.value(QStringLiteral("eyeTemp"), 3500).toInt();
     m_linker->setEyeProtectionEnabled(eyeOn);
     m_linker->setEyeTemp(eyeTemp);
+
+    const QString skin = m_prefs.value(QStringLiteral("skin"), QStringLiteral("classic")).toString();
+    m_pet->setSkin(PetWidget::skinFromKey(skin));
     m_prefs.endGroup();
 }
 
@@ -517,8 +521,9 @@ void MainWindow::onFocusAborted()
     updateActions();
 }
 
-void MainWindow::onStageChanged(int)
+void MainWindow::onStageChanged(int stage)
 {
+    m_pet->setStage(stage);
     updateStageLabel();
     m_pet->setMood(PetWidget::Celebrate);
     m_pet->startCelebration();
@@ -597,6 +602,11 @@ void MainWindow::openSettings()
     auto *autoBreakChk = new QCheckBox(QStringLiteral("专注结束后自动进入休息"), &dlg);
     autoBreakChk->setChecked(autoBreak);
 
+    auto *skinBox = new QComboBox(&dlg);
+    skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Classic), QStringLiteral("classic"));
+    skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Sunflower), QStringLiteral("sunflower"));
+    skinBox->setCurrentIndex(skinBox->findData(PetWidget::skinKey(m_pet->skin())));
+
     auto *eyeChk = new QCheckBox(QStringLiteral("专注时联动系统护眼模式"), &dlg);
     eyeChk->setChecked(eyeProtect);
     eyeChk->setToolTip(QStringLiteral("通过系统 Display1 色温接口实现；开启后专注时屏幕会变暖，结束自动还原。若影响桌面显示可关闭。"));
@@ -612,6 +622,7 @@ void MainWindow::openSettings()
     form->addRow(QStringLiteral("短休息"), breakBox);
     form->addRow(QStringLiteral("长休息(第 N 次后)"), longBox);
     form->addRow(QStringLiteral("长休息间隔"), perSpin);
+    form->addRow(QStringLiteral("露露的皮肤"), skinBox);
     form->addRow(QString(), autoBreakChk);
     form->addRow(QString(), eyeChk);
     form->addRow(QStringLiteral("护眼色温"), tempBox);
@@ -632,6 +643,7 @@ void MainWindow::openSettings()
     m_prefs.setValue(QStringLiteral("longBreakMin"), longBox->currentData().toInt());
     m_prefs.setValue(QStringLiteral("perLong"), perSpin->value());
     m_prefs.setValue(QStringLiteral("autoBreak"), autoBreakChk->isChecked());
+    m_prefs.setValue(QStringLiteral("skin"), skinBox->currentData().toString());
     m_prefs.setValue(QStringLiteral("eyeProtect"), eyeChk->isChecked());
     m_prefs.setValue(QStringLiteral("eyeTemp"), tempBox->currentData().toInt());
     m_prefs.endGroup();

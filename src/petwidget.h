@@ -17,6 +17,14 @@ public:
     enum Mood { Idle, Focused, Tired, Sleepy, Happy, Celebrate };
     Q_ENUM(Mood)
 
+    // 皮肤：影响花瓣/花盘/茎叶配色（纯矢量换色，结构一致便于扩展）
+    enum class Skin { Classic, Sunflower };
+    void setSkin(Skin skin);
+    Skin skin() const { return m_skin; }
+    static QString skinKey(Skin s);
+    static Skin skinFromKey(const QString &key);
+    static QString skinName(Skin s);
+
     explicit PetWidget(QWidget *parent = nullptr);
 
     void setStage(int stage);
@@ -47,6 +55,22 @@ private:
     int m_stage = 0;
     Mood m_mood = Idle;
     qreal m_progress = 0.0;
+    Skin m_skin = Skin::Classic;
+
+    // 皮肤调色板（由 applySkin() 按皮肤填充）
+    QColor m_petal;        // 盛开时外层花瓣
+    QColor m_petalSoft;    // 含苞(阶段2)花瓣
+    QColor m_petal2;       // 盛开时内层花瓣
+    QColor m_disc;         // 花盘
+    QColor m_discBorder;   // 花盘描边
+    QColor m_faceInk;      // 表情墨色
+    QColor m_stem;         // 主茎
+    QColor m_leafA;        // 叶片亮色
+    QColor m_leafB;        // 叶片暗色
+    QColor m_headCol0;     // 种子(阶段0)头
+    QColor m_headCol1;     // 幼苗(阶段1)头
+    QColor m_headBorder;   // 头部描边
+    void applySkin();
 
     QTimer m_animTimer;         // 呼吸 / 庆祝驱动
     qreal m_breathPhase = 0.0;
