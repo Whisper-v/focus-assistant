@@ -20,6 +20,7 @@ class QMouseEvent;
 class QCloseEvent;
 class QEvent;
 class QAction;
+namespace Dtk { namespace Widget { class DSwitchButton; } }
 
 class MainWindow : public QWidget
 {
@@ -37,6 +38,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *) override;
     void mouseReleaseEvent(QMouseEvent *) override;
     void closeEvent(QCloseEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
     bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
@@ -88,6 +90,8 @@ private:
     QPushButton *m_secondary = nullptr;
     QPushButton *m_statsBtn = nullptr;
     QPushButton *m_settingsBtn = nullptr;
+    QLabel *m_minimalLabel = nullptr;                                  // 顶栏「极简」文字
+    Dtk::Widget::DSwitchButton *m_minimalSwitch = nullptr;             // 首页极简模式开关
     QSystemTrayIcon *m_tray = nullptr;
     QMenu *m_trayMenu = nullptr;
     QAction *m_trayPlay = nullptr;

@@ -12,6 +12,7 @@
 #include <QAction>
 #include <QMouseEvent>
 #include <QCloseEvent>
+#include <QResizeEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QComboBox>
@@ -28,6 +29,7 @@
 
 #include <DPushButton>
 #include <DSuggestButton>
+#include <DSwitchButton>
 
 DWIDGET_USE_NAMESPACE
 
@@ -56,6 +58,9 @@ void centerDialogOnScreen(QDialog *dlg, QWidget *anchor)
 
 // ---------- 无边框窗口手动缩放（可大可小） ----------
 constexpr int kResizeEdge = 8; // 距窗口边缘多少像素内可拖拽缩放
+// 首页极简开关的窄窗口策略：文字宽度不足时隐藏、并放宽缩放下限
+constexpr int kMinimalLabelWidth = 268;  // 顶栏宽于该值才显示「极简」文字
+constexpr int kMinNarrowWindow   = 246;  // 隐藏文字后窗口可缩到的宽度下限
 
 // 命中测试：返回所在边缘位（1左 2右 4上 8下），内部为 0
 int hitTestEdges(const QPoint &pos, const QSize &sz)
@@ -121,11 +126,16 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     updateTimeLabel();
 
     // 恢复上次大小（无边框自由缩放，可大可小；下限由布局最小尺寸约束）
+    const QSize savedSize = m_prefs.value(QStringLiteral("window/size"), QSize(300, 412)).toSize();
+    // 若存档尺寸窄到放不下顶栏文字，先隐藏「极简」文字再计算布局下限，避免被撑回宽尺寸
+    const bool startNarrow = !m_minimal && m_minimalLabel && savedSize.width() < kMinimalLabelWidth;
+    if (startNarrow)
+        m_minimalLabel->setVisible(false);
     if (layout())
         layout()->activate();
     const QSize layoutMin = layout() ? layout()->totalMinimumSize() : minimumSize();
-    m_resizeMin = layoutMin.expandedTo(QSize(230, 330));
-    const QSize savedSize = m_prefs.value(QStringLiteral("window/size"), QSize(300, 412)).toSize();
+    const int floorW = qMax(layoutMin.width(), startNarrow ? kMinNarrowWindow : kMinimalLabelWidth);
+    m_resizeMin = QSize(floorW, qMax(layoutMin.height(), 330)).expandedTo(QSize(230, 330));
     resize(qBound(m_resizeMin.width(), savedSize.width(), 1800),
            qBound(m_resizeMin.height(), savedSize.height(), 1500));
 
@@ -182,6 +192,20 @@ void MainWindow::buildUi()
     title->setObjectName(QStringLiteral("headTitle"));
     head->addWidget(title);
     head->addStretch();
+    // 首页极简模式开关（窄窗口时文字自动隐藏，只留开关）
+    m_minimalLabel = new QLabel(QStringLiteral("极简"), this);
+    QFont mif = font(); mif.setPixelSize(10);
+    m_minimalLabel->setFont(mif);
+    m_minimalLabel->setToolTip(QStringLiteral("极简模式：只显示露露与进度环，白色面板完全透明，像悬浮在桌面上一样"));
+    m_minimalSwitch = new DSwitchButton(this);
+    m_minimalSwitch->setFixedSize(50, 24);
+    m_minimalSwitch->setAccessibleName(QStringLiteral("极简模式开关"));
+    m_minimalSwitch->setToolTip(QStringLiteral("极简模式：只显示露露与专注进度环，白色面板变透明，像悬浮在桌面上一样\n开启后可右键露露或通过托盘菜单恢复完整界面"));
+    m_minimalSwitch->setFocusPolicy(Qt::NoFocus);
+    head->addWidget(m_minimalLabel);
+    head->addSpacing(2);
+    head->addWidget(m_minimalSwitch);
+    head->addSpacing(6);
     m_statsBtn = new QPushButton(QStringLiteral("统计"), this);
     m_settingsBtn = new QPushButton(QStringLiteral("设置"), this);
     for (auto *b : { m_statsBtn, m_settingsBtn }) {
@@ -255,9 +279,13 @@ void MainWindow::buildUi()
     connect(m_secondary, &QPushButton::clicked, this, &MainWindow::onSecondaryClicked);
     connect(m_statsBtn, &QPushButton::clicked, this, &MainWindow::showStats);
     connect(m_settingsBtn, &QPushButton::clicked, this, &MainWindow::openSettings);
+    connect(m_minimalSwitch, &DSwitchButton::checkedChanged, this, [this](bool on) {
+        setMinimalMode(on);
+    });
 
     // 记录“面板控件”：极简模式统一隐藏、只留露露
-    m_chrome << title << m_statsBtn << m_settingsBtn
+    m_chrome << title << m_minimalLabel << m_minimalSwitch
+             << m_statsBtn << m_settingsBtn
              << m_stateLabel << m_timeLabel << m_stageLabel
              << m_primary << m_secondary << m_msgTitle << m_msgSub;
 
@@ -455,6 +483,8 @@ void MainWindow::setMinimalMode(bool on)
 
     update();
 
+    if (m_minimalSwitch)
+        m_minimalSwitch->setChecked(on);
     if (m_trayMinimal)
         m_trayMinimal->setChecked(on);
 
@@ -628,7 +658,10 @@ void MainWindow::beginResize(int dir, const QPoint &globalPos)
     if (layout())
         layout()->activate();
     const QSize hint = layout() ? layout()->totalMinimumSize() : minimumSize();
-    m_resizeMin = hint.expandedTo(QSize(230, 330));
+    const int minW = (!m_minimal && m_minimalLabel && m_minimalLabel->isVisible())
+                         ? qMax(hint.width(), kMinimalLabelWidth)
+                         : qMax(hint.width(), kMinNarrowWindow);
+    m_resizeMin = QSize(minW, qMax(hint.height(), 330)).expandedTo(QSize(230, 330));
     setEdgeCursor(dir);
 }
 
@@ -637,13 +670,17 @@ void MainWindow::doResize(const QPoint &globalPos)
     const QPoint d = globalPos - m_resizeStart;
     QRect g = m_resizeGeom;
     const int dir = m_resizeDir;
-    const int minW = m_resizeMin.width();
+    int minW = m_resizeMin.width();
     const int minH = m_resizeMin.height();
 
     if (dir & 2) g.setRight(m_resizeGeom.right() + d.x()); // 右
     if (dir & 8) g.setBottom(m_resizeGeom.bottom() + d.y()); // 下
     if (dir & 1) g.setLeft(m_resizeGeom.left() + d.x());    // 左
     if (dir & 4) g.setTop(m_resizeGeom.top() + d.y());      // 上
+
+    // 拖窄跨越阈值时：隐藏「极简」文字并改用更窄下限，保证仍可继续缩小
+    if (!m_minimal && g.width() < kMinimalLabelWidth)
+        minW = qMax(kMinNarrowWindow, 230);
 
     if (g.width() < minW) {
         if (dir & 1) g.setLeft(g.right() - minW + 1);
@@ -680,6 +717,17 @@ void MainWindow::updateHoverCursor(const QPoint &pos)
     if (m_resizing || m_dragging)
         return;
     setEdgeCursor(hitTestEdges(pos, size()));
+}
+
+void MainWindow::resizeEvent(QResizeEvent *e)
+{
+    QWidget::resizeEvent(e);
+    // 窄窗口顶栏放不下时自动隐藏「极简」文字，只保留开关
+    if (m_minimalLabel) {
+        const bool showLabel = !m_minimal && width() >= kMinimalLabelWidth;
+        if (m_minimalLabel->isHidden() == showLabel)   // isHidden() 只看显式隐藏，不受父链未显示影响
+            m_minimalLabel->setVisible(showLabel);
+    }
 }
 
 // ---------- 状态刷新 ----------
