@@ -31,6 +31,31 @@
 
 DWIDGET_USE_NAMESPACE
 
+namespace {
+
+// 把对话框居中到 anchor(通常为主窗口)所在屏幕的中央
+void centerDialogOnScreen(QDialog *dlg, QWidget *anchor)
+{
+    dlg->adjustSize();
+    QScreen *sc = nullptr;
+    if (anchor && anchor->window())
+        sc = QGuiApplication::screenAt(anchor->window()->geometry().center());
+    if (!sc)
+        sc = QGuiApplication::primaryScreen();
+    if (!sc)
+        return;
+    const QPoint c = sc->availableGeometry().center();
+    const QSize hint = dlg->sizeHint();
+    dlg->move(c.x() - hint.width() / 2, c.y() - hint.height() / 2);
+    // 显示后再按真实窗口(含边框)微调一次，确保严格居中
+    QTimer::singleShot(0, dlg, [dlg, c] {
+        const QRect g = dlg->frameGeometry();
+        dlg->move(c.x() - g.width() / 2, c.y() - g.height() / 2);
+    });
+}
+
+} // namespace
+
 MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     : QWidget(parent)
     , m_mgr(mgr)
@@ -656,6 +681,7 @@ void MainWindow::onStatusMessage(const QString &title, const QString &sub)
 void MainWindow::showStats()
 {
     StatsDialog dlg(m_mgr, this);
+    centerDialogOnScreen(&dlg, this);   // 屏幕中间呼出
     dlg.exec();
 }
 
@@ -740,6 +766,7 @@ void MainWindow::openSettings()
     connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     form->addRow(buttons);
 
+    centerDialogOnScreen(&dlg, this);   // 屏幕中间呼出
     if (dlg.exec() != QDialog::Accepted)
         return;
 
