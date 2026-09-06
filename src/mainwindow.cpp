@@ -46,6 +46,7 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     buildUi();
     buildTray();
     applyPrefs();
+    m_linker->recoverFromCrash(); // 若上次被强杀，先清理可能残留的系统色温
 
     connect(m_mgr, &FocusManager::phaseChanged, this, &MainWindow::onPhaseChanged);
     connect(m_mgr, &FocusManager::tick, this, &MainWindow::onTick);
@@ -54,6 +55,9 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
     connect(m_mgr, &FocusManager::stageChanged, this, &MainWindow::onStageChanged);
     connect(m_mgr, &FocusManager::breakFinished, this, &MainWindow::onBreakFinished);
     connect(m_mgr, &FocusManager::statusMessage, this, &MainWindow::onStatusMessage);
+
+    // 兜底：无论何种方式退出，都还原我们开启的护眼色温
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this] { m_linker->onFocusEnded(); });
 
     updateMoodAndText();
     updateActions();
@@ -223,7 +227,7 @@ void MainWindow::applyPrefs()
     c.autoBreak      = m_prefs.value(QStringLiteral("autoBreak"), true).toBool();
     m_mgr->setConfig(c);
 
-    const bool eyeOn = m_prefs.value(QStringLiteral("eyeProtect"), true).toBool();
+    const bool eyeOn = m_prefs.value(QStringLiteral("eyeProtect"), false).toBool();
     const int eyeTemp = m_prefs.value(QStringLiteral("eyeTemp"), 3500).toInt();
     m_linker->setEyeProtectionEnabled(eyeOn);
     m_linker->setEyeTemp(eyeTemp);
@@ -566,7 +570,7 @@ void MainWindow::openSettings()
     const int longBreakMin = m_prefs.value(QStringLiteral("longBreakMin"), 15).toInt();
     const int perLong = m_prefs.value(QStringLiteral("perLong"), 4).toInt();
     const bool autoBreak = m_prefs.value(QStringLiteral("autoBreak"), true).toBool();
-    const bool eyeProtect = m_prefs.value(QStringLiteral("eyeProtect"), true).toBool();
+    const bool eyeProtect = m_prefs.value(QStringLiteral("eyeProtect"), false).toBool();
     const int eyeTemp = m_prefs.value(QStringLiteral("eyeTemp"), 3500).toInt();
     m_prefs.endGroup();
 
@@ -593,8 +597,9 @@ void MainWindow::openSettings()
     auto *autoBreakChk = new QCheckBox(QStringLiteral("专注结束后自动进入休息"), &dlg);
     autoBreakChk->setChecked(autoBreak);
 
-    auto *eyeChk = new QCheckBox(QStringLiteral("专注时自动开启护眼模式"), &dlg);
+    auto *eyeChk = new QCheckBox(QStringLiteral("专注时联动系统护眼模式"), &dlg);
     eyeChk->setChecked(eyeProtect);
+    eyeChk->setToolTip(QStringLiteral("通过系统 Display1 色温接口实现；开启后专注时屏幕会变暖，结束自动还原。若影响桌面显示可关闭。"));
 
     auto *tempBox = new QComboBox(&dlg);
     for (int v : { 3000, 3500, 4000, 4500, 5000 }) {
