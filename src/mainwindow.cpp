@@ -154,6 +154,9 @@ MainWindow::MainWindow(FocusManager *mgr, SystemLinker *linker, QWidget *parent)
                         static_cast<QWidget *>(m_stageLabel),
                         static_cast<QWidget *>(m_timeLabel) })
         w->setMouseTracking(true);
+
+    // 若上次退出时处于极简模式，启动即保持
+    setMinimalMode(m_prefs.value(QStringLiteral("prefs/minimal"), false).toBool());
 }
 
 MainWindow::~MainWindow()
@@ -253,6 +256,11 @@ void MainWindow::buildUi()
     connect(m_statsBtn, &QPushButton::clicked, this, &MainWindow::showStats);
     connect(m_settingsBtn, &QPushButton::clicked, this, &MainWindow::openSettings);
 
+    // 记录“面板控件”：极简模式统一隐藏、只留露露
+    m_chrome << title << m_statsBtn << m_settingsBtn
+             << m_stateLabel << m_timeLabel << m_stageLabel
+             << m_primary << m_secondary << m_msgTitle << m_msgSub;
+
     // 初始提示
     onStatusMessage(QStringLiteral("你好，我是露露"), QStringLiteral("点击「开始专注」，和我一起种下今天的第一朵花吧"));
 }
@@ -281,6 +289,17 @@ void MainWindow::buildTray()
                            : QStringLiteral("已关闭桌面常驻"),
                         on ? QStringLiteral("露露会一直待在桌面上，不受「显示桌面」影响")
                            : QStringLiteral("露露会随「显示桌面」一起隐藏，需要时可在托盘重新开启"));
+    });
+    m_trayMenu->addSeparator();
+    m_trayMinimal = m_trayMenu->addAction(QStringLiteral("极简模式 · 仅花朵+进度环"));
+    m_trayMinimal->setCheckable(true);
+    m_trayMinimal->setToolTip(QStringLiteral("只显示露露与专注进度环，白色面板变透明；右键露露或托盘可恢复完整界面"));
+    connect(m_trayMinimal, &QAction::triggered, this, [this](bool on) {
+        setMinimalMode(on);
+        onStatusMessage(on ? QStringLiteral("已开启极简模式")
+                           : QStringLiteral("已退出极简模式"),
+                        on ? QStringLiteral("只留下露露和进度环，右键露露或托盘可恢复完整界面")
+                           : QStringLiteral("已恢复完整界面"));
     });
     m_trayMenu->addSeparator();
     QAction *statsAct = m_trayMenu->addAction(QStringLiteral("成长记录"));
@@ -332,6 +351,17 @@ void MainWindow::showSkinMenu(const QPoint &globalPos)
 {
     updateSkinChecks();
     QMenu menu(this);
+    // 极简模式下没有顶栏按钮，右键露露提供退出与功能入口
+    if (m_minimal) {
+        QAction *exitAct = menu.addAction(QStringLiteral("退出极简模式（恢复完整界面）"));
+        connect(exitAct, &QAction::triggered, this, [this] { setMinimalMode(false); });
+        menu.addSeparator();
+    }
+    QAction *statsAct = menu.addAction(QStringLiteral("成长记录"));
+    QAction *settingsAct = menu.addAction(QStringLiteral("设置"));
+    connect(statsAct, &QAction::triggered, this, &MainWindow::showStats);
+    connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
+    menu.addSeparator();
     for (QAction *a : m_skinActs)
         menu.addAction(a);
     menu.exec(globalPos);
@@ -400,8 +430,44 @@ void MainWindow::setPinDesktop(bool on)
         m_trayPin->setChecked(on);
 }
 
+// ---------- 极简模式：只显示露露与进度环，白色面板透明 ----------
+void MainWindow::setMinimalMode(bool on)
+{
+    if (on == m_minimal)
+        return;
+    m_minimal = on;
+
+    if (on && m_normalGeom.isNull())
+        m_normalGeom = geometry();      // 记住完整面板几何，退出时还原
+
+    for (QWidget *w : m_chrome)         // 隐藏/恢复除露露外的面板控件
+        w->setVisible(!on);
+
+    if (on) {
+        // 收起成刚好容纳露露+进度环的透明画布
+        const QSize target(300, 300);
+        const QSize mn = minimumSizeHint().expandedTo(QSize(200, 240));
+        resize(qMax(target.width(), mn.width()), qMax(target.height(), mn.height()));
+    } else if (!m_normalGeom.isNull()) {
+        setGeometry(m_normalGeom);      // 恢复完整界面几何
+        m_normalGeom = QRect();
+    }
+
+    update();
+
+    if (m_trayMinimal)
+        m_trayMinimal->setChecked(on);
+
+    m_prefs.beginGroup(QStringLiteral("prefs"));
+    m_prefs.setValue(QStringLiteral("minimal"), on);
+    m_prefs.endGroup();
+    m_prefs.sync();
+}
+
 void MainWindow::paintEvent(QPaintEvent *)
 {
+    if (m_minimal)
+        return;   // 极简模式：不画任何白色圆角背景，全透明只露出露露与进度环
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
     QColor base = palette().color(QPalette::Base);
@@ -846,6 +912,7 @@ void MainWindow::openSettings()
     const bool eyeProtect = m_prefs.value(QStringLiteral("eyeProtect"), false).toBool();
     const int eyeTemp = m_prefs.value(QStringLiteral("eyeTemp"), 3500).toInt();
     const bool pinDesktop = m_prefs.value(QStringLiteral("pinDesktop"), false).toBool();
+    const bool minimal = m_prefs.value(QStringLiteral("minimal"), false).toBool();
     m_prefs.endGroup();
 
     auto *focusBox = new QComboBox(&dlg);
@@ -875,6 +942,10 @@ void MainWindow::openSettings()
     pinChk->setChecked(pinDesktop);
     pinChk->setToolTip(QStringLiteral("开启后窗口以置顶方式常驻桌面，点击“显示桌面”时不会被隐藏（需要 X11 会话支持）。\n关闭后恢复普通窗口行为。"));
 
+    auto *minimalChk = new QCheckBox(QStringLiteral("极简模式：只显示露露与进度环（背景透明）"), &dlg);
+    minimalChk->setChecked(minimal);
+    minimalChk->setToolTip(QStringLiteral("开启后只保留露露和专注进度环，白色面板完全透明，像悬浮在桌面上一样；\n可右键露露或在托盘菜单中恢复完整界面。保持专注、双击露露开始/暂停等功能不变。"));
+
     auto *skinBox = new QComboBox(&dlg);
     skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Classic), QStringLiteral("classic"));
     skinBox->addItem(PetWidget::skinName(PetWidget::Skin::Sunflower), QStringLiteral("sunflower"));
@@ -897,6 +968,7 @@ void MainWindow::openSettings()
     form->addRow(QStringLiteral("长休息间隔"), perSpin);
     form->addRow(QStringLiteral("露露的皮肤"), skinBox);
     form->addRow(QString(), pinChk);
+    form->addRow(QString(), minimalChk);
     form->addRow(QString(), autoBreakChk);
     form->addRow(QString(), eyeChk);
     form->addRow(QStringLiteral("护眼色温"), tempBox);
@@ -919,12 +991,14 @@ void MainWindow::openSettings()
     m_prefs.setValue(QStringLiteral("perLong"), perSpin->value());
     m_prefs.setValue(QStringLiteral("autoBreak"), autoBreakChk->isChecked());
     m_prefs.setValue(QStringLiteral("pinDesktop"), pinChk->isChecked());
+    m_prefs.setValue(QStringLiteral("minimal"), minimalChk->isChecked());
     m_prefs.setValue(QStringLiteral("skin"), skinBox->currentData().toString());
     m_prefs.setValue(QStringLiteral("eyeProtect"), eyeChk->isChecked());
     m_prefs.setValue(QStringLiteral("eyeTemp"), tempBox->currentData().toInt());
     m_prefs.endGroup();
 
     applyPrefs();
+    setMinimalMode(minimalChk->isChecked());
     updateTimeLabel();
     updateActions();
     onStatusMessage(QStringLiteral("设置已保存"), QStringLiteral("露露会按新的节奏陪你"));

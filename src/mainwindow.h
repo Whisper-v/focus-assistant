@@ -62,6 +62,7 @@ private:
     void updateSkinChecks();
     void applyPrefs();
     void setPinDesktop(bool on);   // 常驻：不受「显示桌面」影响
+    void setMinimalMode(bool on);  // 极简模式：只显示露露+进度环，白色面板透明
     // 无边框窗口：自由缩放（可大可小）
     void beginResize(int dir, const QPoint &globalPos);
     void doResize(const QPoint &globalPos);
@@ -91,6 +92,7 @@ private:
     QMenu *m_trayMenu = nullptr;
     QAction *m_trayPlay = nullptr;
     QAction *m_trayPin = nullptr;
+    QAction *m_trayMinimal = nullptr;
     QAction *m_trayToggle = nullptr;
     QList<QAction *> m_skinActs;
     QSettings m_prefs;
@@ -104,6 +106,10 @@ private:
     QPoint m_resizeStart;
     QRect  m_resizeGeom;
     QSize  m_resizeMin;
+    // 极简模式状态
+    bool m_minimal = false;
+    QRect m_normalGeom;               // 进入极简前保存的完整面板几何
+    QList<QWidget *> m_chrome;        // 极简模式下隐藏的面板控件
 };
 
 #endif // MAINWINDOW_H
