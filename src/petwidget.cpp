@@ -338,7 +338,7 @@ void PetWidget::drawPlant(QPainter &p, QPointF &headPos, qreal &headR)
     p.save();
     p.translate(0, bob);
 
-    // ---------- 向日葵皮肤（PVZ 风格：大花盘 + 双层花瓣 + 招牌表情） ----------
+    // ---------- 向日葵皮肤（PVZ 风格：大花盘 + 双层花瓣 + 圆角大眼） ----------
     if (m_skin == Skin::Sunflower) {
         drawSunflowerPlant(p, headPos, headR);
         p.restore();
@@ -572,7 +572,7 @@ void PetWidget::drawSunflowerBloom(QPainter &p, const QPointF &c, qreal R, int s
     }
 }
 
-// PVZ 向日葵招牌表情：竖长圆角眼 + 高光 + 大大张开的笑
+// PVZ 向日葵表情：竖长圆角眼 + 高光（2026-09-08 按需求移除嘴部）
 void PetWidget::drawSunflowerFace(QPainter &p, const QPointF &c, qreal r)
 {
     const QColor ink("#291708");
@@ -619,22 +619,7 @@ void PetWidget::drawSunflowerFace(QPainter &p, const QPointF &c, qreal r)
         p.drawLine(QPointF(ecR.x() - ew, ecR.y()), QPointF(ecR.x() + ew, ecR.y()));
     };
 
-    // 张开的笑（开口笑，深色口腔）
-    auto drawBigSmile = [&](qreal wf, qreal df) {
-        QPainterPath mo;
-        const qreal mw = r * wf;
-        const qreal my = c.y() + r * 0.20;
-        mo.moveTo(c.x() - mw, my);
-        mo.quadTo(c.x() - mw * 0.45, my + r * df, c.x(), my + r * (df + 0.07));
-        mo.quadTo(c.x() + mw * 0.45, my + r * df, c.x() + mw, my);
-        // 上唇（中间略下垂的弧线）
-        mo.quadTo(c.x() + mw * 0.5, my - r * 0.02, c.x(), my + r * 0.09);
-        mo.quadTo(c.x() - mw * 0.5, my - r * 0.02, c.x() - mw, my);
-        mo.closeSubpath();
-        p.setPen(Qt::NoPen);
-        p.setBrush(ink);
-        p.drawPath(mo);
-    };
+    // 嘴部已按需求移除（2026-09-08）：向日葵表情仅保留眼睛/腮红
 
     bool blush = false;
     switch (m_mood) {
@@ -648,40 +633,27 @@ void PetWidget::drawSunflowerFace(QPainter &p, const QPointF &c, qreal r)
         } else {
             drawOpenEyes();
         }
-        drawBigSmile(0.30, 0.20);
         break;
     }
-    case Focused: {          // 专注：闭眼努力 + 小“o”嘴
+    case Focused: {          // 专注：闭眼努力
         drawClosedHappy(0.8);
-        p.setBrush(ink);
-        p.setPen(Qt::NoPen);
-        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.36), r * 0.075, r * 0.09);
         blush = true;
         break;
     }
-    case Happy: {            // 开心：∩∩ + 大笑
+    case Happy: {            // 开心：∩∩ 眯眯眼
         drawClosedHappy(1.0);
-        drawBigSmile(0.36, 0.26);
         blush = true;
         break;
     }
-    case Tired: {            // 疲惫：耷拉眼 + 小弧线嘴
+    case Tired: {            // 疲惫：耷拉眼
         drawDroopy();
-        QPen pen(ink, qMax(2.0, r * 0.05), Qt::SolidLine, Qt::RoundCap);
-        p.setPen(pen);
-        p.setBrush(Qt::NoBrush);
-        p.drawArc(QRectF(c.x() - r * 0.18, c.y() + r * 0.22, r * 0.36, r * 0.2), 200 * 16, -130 * 16);
         break;
     }
-    case Sleepy:             // 睡觉：线眼 + 小圆嘴
+    case Sleepy:             // 睡觉：线眼
         drawSleepLines();
-        p.setPen(Qt::NoPen);
-        p.setBrush(ink);
-        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.34), r * 0.07, r * 0.06);
         break;
-    case Celebrate:          // 雀跃：∩∩ + 超大张嘴
+    case Celebrate:          // 雀跃：∩∩ 眯眯眼
         drawClosedHappy(1.15);
-        drawBigSmile(0.40, 0.30);
         blush = true;
         break;
     }
