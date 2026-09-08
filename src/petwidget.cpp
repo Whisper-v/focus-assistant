@@ -720,39 +720,42 @@ void PetWidget::drawFace(QPainter &p, const QPointF &c, qreal r)
         break;
     }
 
-    // ---- 嘴 ----
-    const QRectF mouth(c.x() - r * 0.24, c.y() + r * 0.16, r * 0.48, r * 0.34);
-    p.setBrush(ink);
-    switch (m_mood) {
-    case Idle:
-        p.setBrush(Qt::NoBrush);
-        p.drawArc(mouth, 0 * 16, -140 * 16);
-        break;
-    case Focused:
-        p.setBrush(Qt::NoBrush);
-        p.drawArc(mouth, 0 * 16, -160 * 16);
-        break;
-    case Happy:
-        p.setBrush(Qt::NoBrush);
-        p.drawArc(mouth.adjusted(0, -r * 0.02, 0, r * 0.06), 0 * 16, -180 * 16);
-        break;
-    case Tired:
-        p.setBrush(Qt::NoBrush);
-        p.drawArc(mouth, 0 * 16, -90 * 16);
-        break;
-    case Sleepy:
-        p.setPen(Qt::NoPen);
+    if (m_skin != Skin::Sunflower) {   // 向日葵皮肤不画嘴（2026-09-08）
+        // ---- 嘴 ----
+        const QRectF mouth(c.x() - r * 0.24, c.y() + r * 0.16, r * 0.48, r * 0.34);
         p.setBrush(ink);
-        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.36), r * 0.07, r * 0.065);
-        break;
-    case Celebrate: {
-        p.setBrush(QColor("#8d3b2f"));
-        p.setPen(Qt::NoPen);
-        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.36), r * 0.14, r * 0.17);
-        p.setBrush(QColor("#ff8a80"));
-        p.drawEllipse(QPointF(c.x(), c.y() + r * 0.46), r * 0.10, r * 0.08);
-        break;
-    }
+        switch (m_mood) {
+        case Idle:
+            p.setBrush(Qt::NoBrush);
+            p.drawArc(mouth, 0 * 16, -140 * 16);
+            break;
+        case Focused:
+            p.setBrush(Qt::NoBrush);
+            p.drawArc(mouth, 0 * 16, -160 * 16);
+            break;
+        case Happy:
+            p.setBrush(Qt::NoBrush);
+            p.drawArc(mouth.adjusted(0, -r * 0.02, 0, r * 0.06), 0 * 16, -180 * 16);
+            break;
+        case Tired:
+            p.setBrush(Qt::NoBrush);
+            p.drawArc(mouth, 0 * 16, -90 * 16);
+            break;
+        case Sleepy:
+            p.setPen(Qt::NoPen);
+            p.setBrush(ink);
+            p.drawEllipse(QPointF(c.x(), c.y() + r * 0.36), r * 0.07, r * 0.065);
+            break;
+        case Celebrate: {
+            p.setBrush(QColor("#8d3b2f"));
+            p.setPen(Qt::NoPen);
+            p.drawEllipse(QPointF(c.x(), c.y() + r * 0.36), r * 0.14, r * 0.17);
+            p.setBrush(QColor("#ff8a80"));
+            p.drawEllipse(QPointF(c.x(), c.y() + r * 0.46), r * 0.10, r * 0.08);
+            break;
+        }
+        }
+
     }
 
     // ---- 腮红 ----
